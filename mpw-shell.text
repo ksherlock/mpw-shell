@@ -1,0 +1,21 @@
+
+
+parser differences.
+
+I've tried to follow mpw's command line parsing algorithm but there are some differences.
+
+Mostly this is because
+
+set q '"' ; echo {q} really "
+
+is equivalent to
+
+echo " really "
+
+mpw removes # comments before shell expansion so this _is_ an error:
+
+echo {q} # "
+
+- mpw doesn't split on ; until after variables are expanded.  I split before variable expansion.
+- escape new-line is not allowed in a '' or {} string.
+- quote matching happens when the line is read. 
