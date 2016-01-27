@@ -14,3 +14,5 @@ script: make
 before_install:
   - brew update
   - brew install ragel
+  - brew install cmake
+
