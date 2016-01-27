@@ -11,3 +11,6 @@ before_script:
   - cd build
   - cmake ..
 script: make
+before_install:
+  - brew update
+  - brew install ragel
