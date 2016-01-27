@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <cerrno>
 #include <algorithm>
 
 %%{
@@ -347,8 +348,10 @@ command_ptr read_fd(int fd) {
 	for(;;) {
 		ssize_t s = read(fd, buffer, sizeof(buffer));
 		if (s < 0) {
+			if (errno == EINTR) continue;
 			throw std::runtime_error("MPW Shell - Read error.");
 		}
+		if (s == 0) break;
 		p.process(buffer, s);
 	}
 	return p.finish();
