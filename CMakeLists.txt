@@ -1,8 +1,23 @@
-set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_FLAGS "-std=c++14 -stdlib=libc++ -g -Wall -Wno-unused-const-variable -Wno-unused-variable -Wno-multichar -Wno-c++11-extensions")
 
-project("mpw-shell")
 cmake_minimum_required(VERSION 2.6)
+project("mpw-shell")
+set (PROJECT_TYPE "CXX")
+set (PROJECT_NAME "MPW Shell")
+
+
+set(CMAKE_CXX_FLAGS "-std=c++14 -g -Wall")
+
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+	#set(CMAKE_CXX_COMPILER "clang++")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-unused-variable -Wno-multichar -Wno-c++11-extensions")
+endif()
+
+
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
+endif()
+
+
 
 add_definitions(-I ${CMAKE_SOURCE_DIR}/)
 

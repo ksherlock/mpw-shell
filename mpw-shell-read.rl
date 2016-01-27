@@ -2,7 +2,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <algorithm>
 
 %%{
 	machine classify;
