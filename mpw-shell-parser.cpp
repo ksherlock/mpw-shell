@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <algorithm>
 
 /*
  * I'm sick of fighting with lemon.  Just generate it by hand.

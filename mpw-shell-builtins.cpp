@@ -1,8 +1,4 @@
 
-#ifdef __linux__
-// fopencookie support.
-#define _GNU_SOURCE
-#endif
 #include "mpw-shell.h"
 
 #include "fdset.h"
@@ -84,7 +80,7 @@ namespace {
 		#ifdef __linux__
 		/* Linux */
 		cookie_io_functions_t io = { readfn, writefn, nullptr, nullptr };
-		return fopencookie((const void *)(std::ptrdiff_t)fd, "w+", io);
+		return fopencookie((void *)(std::ptrdiff_t)fd, "w+", io);
 		#else
 		/* *BSD */
 		return funopen((const void *)(std::ptrdiff_t)fd, readfn, writefn, nullptr, nullptr);
