@@ -5,6 +5,7 @@
 #include <cctype>
 #include <cassert>
 #include <cerrno>
+#include <cstring>
 
 #include <algorithm>
 #include <functional>
