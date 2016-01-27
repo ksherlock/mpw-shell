@@ -1,11 +1,11 @@
-# Ubuntu 14.04 Trusty support for -std=c++14
-sudo: required
-dist: trusty
-
+# this builds with linux/g++ however, travis-ci's 
+# linux compilers are hopelessly out of date.
+os: osx
+osx_image: xcode7.3
 language: cpp
 compiler: 
   - clang
-  - gcc
+#  - gcc
 before_script: 
   - mkdir build
   - cd build
