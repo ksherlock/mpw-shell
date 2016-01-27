@@ -1,3 +1,8 @@
+
+#ifdef __linux__
+// fopencookie support.
+#define _GNU_SOURCE
+#endif
 #include "mpw-shell.h"
 
 #include "fdset.h"
@@ -47,14 +52,22 @@ namespace {
 	 * this is not desirable.
 	 */
 
+	// linux uses size_t.  *BSD uses int.
 	int readfn(void *cookie, char *buffer, int size) {
-		return ::read((int)(ptrdiff_t)cookie, buffer, size);
+		return ::read((int)(std::ptrdiff_t)cookie, buffer, size);
+	}
+
+	int readfn(void *cookie, char *buffer, size_t size) {
+		return ::read((int)(std::ptrdiff_t)cookie, buffer, size);
 	}
 
 	int writefn(void *cookie, const char *buffer, int size) {
-		return ::write((int)(ptrdiff_t)cookie, buffer, size);
+		return ::write((int)(std::ptrdiff_t)cookie, buffer, size);
 	}
 
+	int writefn(void *cookie, const char *buffer, size_t size) {
+		return ::write((int)(std::ptrdiff_t)cookie, buffer, size);
+	}
 
 	FILE *file_stream(int index, int fd) {
 		if (fd < 0) {
@@ -66,8 +79,17 @@ namespace {
 				return stderr;
 			}
 		}
-		// will not close.  
-		return funopen((const void *)(ptrdiff_t)fd, readfn, writefn, nullptr, nullptr);
+		// will not close.
+
+		#ifdef __linux__
+		/* Linux */
+		cookie_io_functions_t io = { readfn, writefn, nullptr, nullptr };
+		return fopencookie((const void *)(std::ptrdiff_t)fd, "w+", io);
+		#else
+		/* *BSD */
+		return funopen((const void *)(std::ptrdiff_t)fd, readfn, writefn, nullptr, nullptr);
+		#endif
+
 	}
 
 

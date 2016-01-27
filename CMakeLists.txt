@@ -5,11 +5,11 @@ set (PROJECT_TYPE "CXX")
 set (PROJECT_NAME "MPW Shell")
 
 
-set(CMAKE_CXX_FLAGS "-std=c++14 -g -Wall -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "-std=c++14 -g -Wall -Wno-unused-variable -Wno-multichar")
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 	#set(CMAKE_CXX_COMPILER "clang++")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable -Wno-multichar")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable ")
 endif()
 
 
