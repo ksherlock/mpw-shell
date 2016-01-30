@@ -42,7 +42,7 @@ namespace {
 
 
 
-
+#if 0
 	/*
 	 * the fdopen() will assume ownership of the fd and close it.
 	 * this is not desirable.
@@ -115,6 +115,7 @@ namespace {
 		io_helper &operator=(const io_helper &) = delete;
 	};
 
+#endif
 
 }
 
@@ -122,9 +123,24 @@ namespace {
 #undef stdout
 #undef stderr
 
-#define stdin io.in
-#define stdout io.out
-#define stderr io.err
+#define stdin fds[0]
+#define stdout fds[1]
+#define stderr fds[2]
+
+#undef fprintf
+#undef fputs
+#undef fputc
+
+#define fprintf(...) dprintf(__VA_ARGS__)
+inline int fputs(const char *data, int fd) {
+	auto rv = write(fd, data, strlen(data));  return rv < 0 ? EOF : rv;
+}
+
+inline int fputc(int c, int fd) {
+	unsigned char tmp = c;
+	auto rv = write(fd, &tmp, 1);  return rv < 0 ? EOF : c;
+}
+
 
 int builtin_unset(const std::vector<std::string> &tokens, const fdmask &) {
 	for (auto iter = tokens.begin() + 1; iter != tokens.end(); ++iter) {
@@ -142,13 +158,21 @@ int builtin_unset(const std::vector<std::string> &tokens, const fdmask &) {
 }
 
 
+template <class UO, class K, class M>
+void insert_or_assign(UO &map, K&& k, M&& obj) {
+
+	auto iter = map.find(k);
+	if (iter != map.end()) iter->second = std::forward<M>(obj);
+	else map.emplace(std::make_pair(std::forward<K>(k), std::forward<M>(obj)));
+}
+
 int builtin_set(const std::vector<std::string> &tokens, const fdmask &fds) {
 	// set var name  -- set
 	// set var -- just print the value
 
 	// 3.5 supports -e to also export it.
 
-	io_helper io(fds);
+	//io_helper io(fds);
 
 
 	if (tokens.size() == 1) {
@@ -198,13 +222,13 @@ int builtin_set(const std::vector<std::string> &tokens, const fdmask &fds) {
 	std::string value = tokens[2+exported];
 	lowercase(name);
 
-	Environment[name] = std::move(EnvironmentEntry(std::move(value), exported));
+	Environment[name] = EnvironmentEntry(std::move(value), exported);
 	return 0;
 }
 
 
 
-static int export_common(bool export_or_unexport, const std::vector<std::string> &tokens, io_helper &io) {
+static int export_common(bool export_or_unexport, const std::vector<std::string> &tokens, const fdmask &fds) {
 
 	const char *name = export_or_unexport ? "Export" : "Unexport";
 
@@ -273,21 +297,21 @@ conflict:
 }
 int builtin_export(const std::vector<std::string> &tokens, const fdmask &fds) {
 
-	io_helper io(fds);
-	return export_common(true, tokens, io);
+	//io_helper io(fds);
+	return export_common(true, tokens, fds);
 }
 
 int builtin_unexport(const std::vector<std::string> &tokens, const fdmask &fds) {
 
-	io_helper io(fds);
-	return export_common(false, tokens, io);
+	//io_helper io(fds);
+	return export_common(false, tokens, fds);
 }
 
 
 
 int builtin_echo(const std::vector<std::string> &tokens, const fdmask &fds) {
 
-	io_helper io(fds);
+	//io_helper io(fds);
 
 	bool space = false;
 	bool n = false;
@@ -312,7 +336,7 @@ int builtin_echo(const std::vector<std::string> &tokens, const fdmask &fds) {
 int builtin_quote(const std::vector<std::string> &tokens, const fdmask &fds) {
 	// todo...
 
-	io_helper io(fds);
+	//io_helper io(fds);
 
 	bool space = false;
 	bool n = false;
@@ -337,7 +361,7 @@ int builtin_quote(const std::vector<std::string> &tokens, const fdmask &fds) {
 
 int builtin_parameters(const std::vector<std::string> &argv, const fdmask &fds) {
 
-	io_helper io(fds);
+	//io_helper io(fds);
 
 	int i = 0;
 	for (const auto &s : argv) {
@@ -354,7 +378,7 @@ int builtin_directory(const std::vector<std::string> &tokens, const fdmask &fds)
 	// for relative names, uses {DirectoryPath} (if set) rather than .
 	// set DirectoryPath ":,{MPW},{MPW}Projects:"
 
-	io_helper io(fds);
+	//io_helper io(fds);
 
 	bool q = false;
 	bool error = false;
@@ -425,7 +449,7 @@ int builtin_evaluate(std::vector<token> &&tokens, const fdmask &fds) {
 
 	int output = 'd';
 
-	io_helper io(fds);
+	//io_helper io(fds);
 
 	std::reverse(tokens.begin(), tokens.end());
 
@@ -504,6 +528,8 @@ int builtin_evaluate(std::vector<token> &&tokens, const fdmask &fds) {
 		return 0;
 	}
 	if (output == 'b') {
+		std::string tmp("0b");
+		/*
 		fputc('0', stdout);
 		fputc('b', stdout);
 		for (int j = 0; j < 32; ++j) {
@@ -511,8 +537,15 @@ int builtin_evaluate(std::vector<token> &&tokens, const fdmask &fds) {
 			i <<= 1;
 		}
 		fputc('\n', stdout);
-		return 0;
+		*/
 
+		for (int j = 0; j < 32; ++j) {
+			tmp.push_back(i & 0x80000000 ? '1' : '0');
+			i <<= 1;
+		}
+		tmp.push_back('\n');
+		fputs(tmp.c_str(), stdout);
+		return 0;
 	}
 	if (output == 'o') {
 		// octal.
