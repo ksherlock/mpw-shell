@@ -4,11 +4,9 @@ project("mpw-shell")
 set (PROJECT_TYPE "CXX")
 set (PROJECT_NAME "MPW Shell")
 
-
-set(CMAKE_CXX_FLAGS "-std=c++14 -g -Wall -Wno-unused-variable -Wno-multichar")
+set(CMAKE_CXX_FLAGS "-g -Wall -Wno-unused-variable -Wno-multichar")
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-	#set(CMAKE_CXX_COMPILER "clang++")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable ")
 endif()
 
@@ -21,12 +19,48 @@ endif()
 
 add_definitions(-I ${CMAKE_SOURCE_DIR}/)
 
+# from https://github.com/gsauthof/cmake-ragel
+macro(RAGEL_TARGET Name Input Output)
+	set(RAGEL_EXECUTABLE "ragel")
+	set(RAGEL_TARGET_usage
+	          "RAGEL_TARGET(<Name> <Input> <Output> [COMPILE_FLAGS <string>]")
+	if(${ARGC} GREATER 3)
+	  if(${ARGC} EQUAL 5)
+	    if("${ARGV3}" STREQUAL "COMPILE_FLAGS")
+	      set(RAGEL_EXECUTABLE_opts  "${ARGV4}")
+	      separate_arguments(RAGEL_EXECUTABLE_opts)
+	    else()
+	      message(SEND_ERROR ${RAGEL_TARGET_usage})
+	    endif()
+	  else()
+	    message(SEND_ERROR ${RAGEL_TARGET_usage})
+	  endif()
+	endif()
 
-add_custom_command(
-	OUTPUT mpw-shell-read.cpp
-	COMMAND ragel -p -G2 -o mpw-shell-read.cpp "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-read.rl"
-	MAIN_DEPENDENCY mpw-shell-read.rl 
-)
+	add_custom_command(OUTPUT ${Output}
+	  COMMAND ${RAGEL_EXECUTABLE}
+	  ARGS    ${RAGEL_EXECUTABLE_opts} -o${CMAKE_CURRENT_BINARY_DIR}/${Output} ${Input}
+	  DEPENDS ${Input}
+	  COMMENT
+	      "[RAGEL][${Name}] Compiling state machine with Ragel ${RAGEL_VERSION}"
+	  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+	set(RAGEL_${Name}_DEFINED       TRUE)
+	set(RAGEL_${Name}_OUTPUTS       ${Output})
+	set(RAGEL_${Name}_INPUT         ${Input})
+	set(RAGEL_${Name}_COMPILE_FLAGS ${RAGEL_EXECUTABLE_opts})
+endmacro()
+
+
+#add_custom_command(
+#	OUTPUT mpw-shell-read.cpp
+#	COMMAND ragel -p -G2 -o mpw-shell-read.cpp "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-read.rl"
+#	MAIN_DEPENDENCY mpw-shell-read.rl 
+#)
+
+RAGEL_TARGET(mpw-shell-read mpw-shell-read.rl mpw-shell-read.cpp COMPILE_FLAGS "-p -G2")
+RAGEL_TARGET(phase1 phase1.rl phase1.cpp COMPILE_FLAGS "-p -G2")
+RAGEL_TARGET(phase2 phase2.rl phase2.cpp COMPILE_FLAGS "-p -G2")
 
 add_custom_command(
 	OUTPUT mpw-shell-expand.cpp
@@ -52,6 +86,8 @@ add_custom_command(
 	MAIN_DEPENDENCY value.rl 
 )
 
+
+
 add_custom_command(
 	OUTPUT mpw-shell-quote.cpp
 	COMMAND ragel -p -G2 -o mpw-shell-quote.cpp "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-quote.rl"
@@ -59,8 +95,21 @@ add_custom_command(
 )
 
 
+add_custom_command(
+	OUTPUT mpw-shell-grammar.cpp mpw-shell-grammar.h
+	COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-grammar.lemon" "mpw-shell-grammar.lemon"
+	COMMAND lemon++ mpw-shell-grammar.lemon
+	COMMAND cp -f mpw-shell-grammar.h "${CMAKE_CURRENT_SOURCE_DIR}/"
+	COMMAND cp -f mpw-shell-grammar.out "${CMAKE_CURRENT_SOURCE_DIR}/"
+	MAIN_DEPENDENCY mpw-shell-grammar.lemon
+)
 
 
 add_executable(mpw-shell mpw-shell.cpp mpw-shell-read.cpp mpw-shell-token.cpp mpw-shell-expand.cpp 
-	mpw-shell-execute.cpp mpw-shell-builtins.cpp mpw-shell-parser.cpp value.cpp mpw-shell-quote.cpp)
+	mpw-shell-execute.cpp mpw-shell-builtins.cpp mpw-shell-parser.cpp value.cpp mpw-shell-quote.cpp 
+	phase1.cpp phase2.cpp )
 
+# all this for -std=c++14
+set_property (TARGET mpw-shell PROPERTY CXX_STANDARD 14)
+set_property (TARGET mpw-shell PROPERTY CXX_STANDARD_REQUIRED TRUE)
+set_property (TARGET mpw-shell PROPERTY CXX_EXTENSIONS FALSE)
