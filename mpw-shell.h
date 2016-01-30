@@ -7,9 +7,6 @@
 #include <memory>
 #include <cstdint>
 
-class command;
-typedef std::shared_ptr<command> command_ptr;
-typedef std::weak_ptr<command> weak_command_ptr;
 
 const unsigned char escape = 0xb6;
 
@@ -46,6 +43,8 @@ private:
 
 extern std::unordered_map<std::string, EnvironmentEntry> Environment;
 
+#ifndef NOCOMMAND
+
 enum {
 	command_if = 1,
 	command_else,
@@ -54,6 +53,10 @@ enum {
 	command_begin,
 	command_evaluate,
 };
+
+class command;
+typedef std::shared_ptr<command> command_ptr;
+typedef std::weak_ptr<command> weak_command_ptr;
 
 class command {
 	public:
@@ -86,6 +89,12 @@ class command {
 
 };
 
+command_ptr read_fd(int fd);
+command_ptr read_file(const std::string &);
+command_ptr read_string(const std::string &);
+int execute(command_ptr cmd);
+
+#endif
 
 class token {
 public:
@@ -122,9 +131,6 @@ public:
 };
 
 
-command_ptr read_fd(int fd);
-command_ptr read_file(const std::string &);
-command_ptr read_string(const std::string &);
 
 std::vector<token> tokenize(const std::string &s, bool eval = false);
 std::string expand_vars(const std::string &s, const std::unordered_map<std::string, EnvironmentEntry> &env);
@@ -140,7 +146,6 @@ class fdmask;
 void parse_tokens(std::vector<token> &&tokens, process &p);
 
 
-int execute(command_ptr cmd);
 
 int32_t evaluate_expression(const std::string &name, std::vector<token> &&tokens);
 

@@ -52,6 +52,9 @@ macro(RAGEL_TARGET Name Input Output)
 endmacro()
 
 
+
+
+
 #add_custom_command(
 #	OUTPUT mpw-shell-read.cpp
 #	COMMAND ragel -p -G2 -o mpw-shell-read.cpp "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-read.rl"
@@ -61,6 +64,14 @@ endmacro()
 RAGEL_TARGET(mpw-shell-read mpw-shell-read.rl mpw-shell-read.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(phase1 phase1.rl phase1.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(phase2 phase2.rl phase2.cpp COMPILE_FLAGS "-p -G2")
+
+add_custom_command(
+	OUTPUT phase2-parser.cpp phase2-parser.h
+	COMMAND lemon++ -Tlempar.cxx phase2-parser.lemon
+	COMMAND mv phase2-parser.cpp ${CMAKE_CURRENT_BINARY_DIR}/
+	MAIN_DEPENDENCY phase2-parser.lemon 
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 add_custom_command(
 	OUTPUT mpw-shell-expand.cpp
@@ -107,7 +118,7 @@ add_custom_command(
 
 add_executable(mpw-shell mpw-shell.cpp mpw-shell-read.cpp mpw-shell-token.cpp mpw-shell-expand.cpp 
 	mpw-shell-execute.cpp mpw-shell-builtins.cpp mpw-shell-parser.cpp value.cpp mpw-shell-quote.cpp 
-	phase1.cpp phase2.cpp )
+	phase1.cpp phase2.cpp phase2-parser.cpp command.cpp)
 
 # all this for -std=c++14
 set_property (TARGET mpw-shell PROPERTY CXX_STANDARD 14)
