@@ -31,9 +31,11 @@
 		END %eof{ return command_end; };
 		END ws => {return command_end; };
 
+		BEGIN %eof{ return command_begin; };
+		BEGIN ws => {return command_begin; };
+
 		EVALUATE %eof{ return command_evaluate; };
 		EVALUATE ws => {return command_evaluate; };
-
 
 	*|;
 
