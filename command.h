@@ -4,7 +4,8 @@
 #include <memory>
 #include <vector>
 #include <array>
-#include "mpw-shell-grammar.h"
+#include <string>
+#include "phase2-parser.h"
 
 typedef std::unique_ptr<struct command> command_ptr;
 typedef std::vector<command_ptr> command_ptr_vector;
@@ -18,7 +19,7 @@ struct command {
 
 	int type = 0;
 	virtual ~command();
-	virtual int execute();
+	virtual int execute() = 0;
 };
 
 struct simple_command  : public command {
@@ -27,6 +28,8 @@ struct simple_command  : public command {
 	{}
 
 	std::string text;
+
+	virtual int execute() final override;
 };
 
 struct binary_command : public command {
@@ -36,6 +39,7 @@ struct binary_command : public command {
 	{}
 
 	command_ptr_pair children;
+
 };
 
 struct or_command : public binary_command {
@@ -43,19 +47,35 @@ struct or_command : public binary_command {
 		binary_command(PIPE_PIPE, std::move(a), std::move(b)) 
 	{}
 
+	virtual int execute() final override;
 };
 
 struct and_command : public binary_command {
 	and_command(command_ptr &&a, command_ptr &&b) :
 		binary_command(AMP_AMP, std::move(a), std::move(b)) 
 	{}
+
+	virtual int execute() final override;
 };
+
+
+#if 0
+struct pipe_command : public binary_command {
+	and_command(command_ptr &&a, command_ptr &&b) :
+		binary_command(PIPE, std::move(a), std::move(b)) 
+	{}
+
+	virtual int execute() final override;
+};
+#endif
+
 
 struct vector_command : public command {
 	vector_command(int t, command_ptr_vector &&v) : command(t), children(std::move(v))
 	{}
 
 	command_ptr_vector children;
+	virtual int execute() override;
 };
 
 struct begin_command : public vector_command {
@@ -65,11 +85,14 @@ struct begin_command : public vector_command {
 	{}
 
 	std::string end; 
+
+	virtual int execute() final override;
 };
 
+typedef std::unique_ptr<struct if_else_clause> if_else_clause_ptr;
 struct if_command : public command {
 
-	typedef std::vector<struct if_else_clause> clause_vector_type;
+	typedef std::vector<if_else_clause_ptr> clause_vector_type;
 
 	template<class S>
 	if_command(clause_vector_type &&v, S &&s) :
@@ -79,6 +102,8 @@ struct if_command : public command {
 
 	clause_vector_type clauses;
 	std::string end;
+
+	virtual int execute() final override;
 };
 
 struct if_else_clause : public vector_command {
@@ -91,6 +116,7 @@ struct if_else_clause : public vector_command {
 	std::string clause;
 
 	bool evaluate();
+	//virtual int execute() final override;
 };
 
 #endif
