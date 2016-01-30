@@ -4,7 +4,7 @@
  *
  */
 
-#include "mpw-shell-grammar.h"
+#include "phase2-parser.h"
 #include "phase2.h"
 #include "command.h"
 
@@ -84,7 +84,6 @@
 	*|;
 
 }%%
-
 
 namespace {
 	%% machine classify;
@@ -167,16 +166,40 @@ void phase2::finish() {
 	exec();
 }
 
+void phase2::parse(int token, std::string &&s) {
+	if (parser) parser->parse(token, std::move(s));
+}
+
 void phase2::exec() {
 
-	if (pipe_to) {
-		for (auto &p : command_queue) {
+	if (pipe_to && parser) {
+		for (auto &p : parser->command_queue) {
 			if (p) {
 				pipe_to(std::move(p));
 			}
 		}
-		command_queue.clear();
+		parser->command_queue.clear();
 	}
 	
 }
 
+phase2::phase2() {
+	parser = std::move(phase2_parser::make());
+}
+
+#pragma mark - phase2_parser
+
+void phase2_parser::parse_accept() {
+	error = false;
+}
+
+void phase2_parser::parse_failure() {
+	error = false;
+}
+
+void phase2_parser::syntax_error(int yymajor, std::string &yyminor) {
+	if (!error)
+		fprintf(stderr, "### Parse error near %s\n", yyminor.c_str());
+
+	error = true;
+}

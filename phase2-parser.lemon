@@ -1,0 +1,156 @@
+
+/*
+ >, < redirection is handled later, after environment expansion.
+ (also, redirection can be in the middle of a command.)
+ */
+
+%include {
+
+#include "phase2.h"
+#include "command.h"
+#define LEMON_SUPER phase2_parser
+
+}
+
+%code {
+	
+std::unique_ptr<phase2_parser> phase2_parser::make() {
+	return std::make_unique<yypParser>();
+}
+}
+
+%left PIPE_PIPE AMP_AMP.
+%left PIPE.
+
+%token_type {std::string}
+%default_type {command_ptr}
+
+%type start {void}
+%type opt_command_list {void}
+%type command_list {void}
+
+/* these are put into a queue for immmediate execution */
+
+start ::= opt_command_list.
+
+opt_command_list ::= .
+opt_command_list ::= command_list.
+
+command_list ::= command_list opt_command(C) sep . {
+	if (C) command_queue.emplace_back(std::move(C));
+}
+
+command_list ::= opt_command(C) sep. {
+	if (C) command_queue.emplace_back(std::move(C));
+}
+
+/*
+ compound_list is identical to command_list, but it is not executed immediately.
+ */
+
+%type opt_compound_list { command_ptr_vector }
+opt_compound_list(RV) ::= . { /* RV */ }
+opt_compound_list(RV) ::= compound_list(L). { RV = std::move(L); }
+
+%type compound_list { command_ptr_vector }
+
+compound_list(RV) ::= compound_list(L) opt_command(C) sep . {
+	RV = std::move(L);
+	if (C) RV.emplace_back(std::move(C));
+}
+
+compound_list(RV) ::= opt_command(C) sep. {
+	if (C) RV.emplace_back(std::move(C));
+}
+
+
+sep ::= SEMI.
+sep ::= NL.
+
+%type opt_command { command_ptr }
+opt_command(RV) ::= command(C). { RV = std::move(C); }
+opt_command(RV) ::= . { /* RV */ }
+
+%type command { command_ptr }
+
+command(RV) ::= command(L) PIPE_PIPE opt_nl command(R). {
+	RV = std::make_unique<or_command>(std::move(L), std::move(R));
+}
+
+command(RV) ::= command(L) AMP_AMP opt_nl command(R). { 
+	RV = std::make_unique<and_command>(std::move(L), std::move(R));
+}
+
+/*
+command(RV) ::= command PIPE opt_nl command. {
+	RV = std::make_unique<pipe_command>(std::move(L), std::move(R));
+}
+*/
+
+command(RV) ::= term(T). { RV = std::move(T); }
+
+term(RV) ::= COMMAND(C).       { RV = std::make_unique<simple_command>(std::move(C)); }
+term(RV) ::= EVALUATE(C).      { RV = std::make_unique<simple_command>(std::move(C)); }
+term(RV) ::= if_command(C).    { RV = std::move(C); }
+term(RV) ::= begin_command(C). { RV = std::move(C); }
+term(RV) ::= paren_command(C). { RV = std::move(C); }
+
+paren_command(RV) ::= LPAREN(T) opt_compound_list(L) RPAREN(E). {
+	RV = std::make_unique<begin_command>(@T, std::move(L), std::move(E));
+}
+
+begin_command(RV) ::= BEGIN(T) sep opt_compound_list(L) END(E). {
+	RV = std::make_unique<begin_command>(@T, std::move(L), std::move(E));
+}
+
+if_command(RV) ::= IF(I) sep opt_compound_list(L) END(E). {
+
+	if_command::clause_vector_type v;
+	v.emplace_back(std::make_unique<if_else_clause>(IF, std::move(L), std::move(I)));
+
+	RV = std::make_unique<if_command>(
+		std::move(v),
+		std::move(E)
+	);
+
+}
+
+if_command(RV) ::= IF(I) sep opt_compound_list(L) else_command(EC) END(E). {
+
+	if_command::clause_vector_type v;
+	v.emplace_back(std::make_unique<if_else_clause>(IF, std::move(L), std::move(I)));
+	for(auto &c : EC) { v.emplace_back(std::move(c)); }
+
+	RV = std::make_unique<if_command>(
+		std::move(v), std::move(E));	
+}
+
+%token_class else ELSE_IF ELSE.
+
+%type else_command { if_command::clause_vector_type }
+else_command(RV) ::= else(E) sep opt_compound_list(L). {
+	RV.emplace_back(std::make_unique<if_else_clause>(@E, std::move(L), std::move(E)));
+}
+/*
+else_command(RV) ::= ELSE_IF(E) sep opt_compound_list(L). {
+	RV.emplace_back(std::make_unique<if_else_clause>(@E, std::move(L), std::move(E)));
+}
+*/
+
+else_command(RV) ::= else_command(EC) else(E) sep opt_compound_list(L). {
+	RV = std::move(EC);
+	RV.emplace_back(std::make_unique<if_else_clause>(@E, std::move(L), std::move(E)));
+}
+
+/*
+else_command(RV) ::= else_command(EC) ELSE_IF(E) sep opt_compound_list(L). {
+	RV = std::move(EC);
+	RV.emplace_back(std::make_unique<else_command>(std::move(E), std::move(L)));
+}
+*/
+
+opt_nl ::= .
+opt_nl ::= nl.
+nl ::= NL.
+nl ::= nl NL.
+
