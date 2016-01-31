@@ -65,11 +65,13 @@ RAGEL_TARGET(mpw-shell-read mpw-shell-read.rl mpw-shell-read.cpp COMPILE_FLAGS "
 RAGEL_TARGET(phase1 phase1.rl phase1.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(phase2 phase2.rl phase2.cpp COMPILE_FLAGS "-p -G2")
 
+# need to copy all OUTPUT file to the build dir
 add_custom_command(
 	OUTPUT phase2-parser.cpp phase2-parser.h
 	COMMAND lemon++ -Tlempar.cxx phase2-parser.lemon
-	COMMAND mv phase2-parser.cpp ${CMAKE_CURRENT_BINARY_DIR}/
+	COMMAND cp -p phase2-parser.cpp phase2-parser.h ${CMAKE_CURRENT_BINARY_DIR}/
 	MAIN_DEPENDENCY phase2-parser.lemon 
+	DEPENDS lempar.cxx
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
@@ -105,15 +107,6 @@ add_custom_command(
 	MAIN_DEPENDENCY mpw-shell-quote.rl 
 )
 
-
-add_custom_command(
-	OUTPUT mpw-shell-grammar.cpp mpw-shell-grammar.h
-	COMMAND cp -f "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-grammar.lemon" "mpw-shell-grammar.lemon"
-	COMMAND lemon++ mpw-shell-grammar.lemon
-	COMMAND cp -f mpw-shell-grammar.h "${CMAKE_CURRENT_SOURCE_DIR}/"
-	COMMAND cp -f mpw-shell-grammar.out "${CMAKE_CURRENT_SOURCE_DIR}/"
-	MAIN_DEPENDENCY mpw-shell-grammar.lemon
-)
 
 
 add_executable(mpw-shell mpw-shell.cpp mpw-shell-read.cpp mpw-shell-token.cpp mpw-shell-expand.cpp 
