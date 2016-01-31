@@ -68,13 +68,21 @@ int main(int argc, char **argv) {
 
 	phase1 p1;
 	phase2 p2;
+	p1 >>= p2;
+
+	p2 >>= [](command_ptr &&ptr) {
+		printf("command: %d\n", ptr->type);
+		ptr->execute();
+	};
+	/*
 	p1 >>= [&p2](std::string &&s) {
 
 		fprintf(stdout, " -> %s\n", s.c_str());
 		p2.process(s);
 	};
-
+	*/
 	read_stdin(p1);
+	p2.finish();
 
 /*
 	try {
