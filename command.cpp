@@ -7,6 +7,8 @@ command::~command()
 
 
 int simple_command::execute() {
+	// echo
+	fprintf(stderr, "  %s\n", text.c_str());
 	return 0;
 }
 
@@ -50,8 +52,14 @@ int vector_command::execute() {
 int begin_command::execute() {
 	// todo -- parse end for redirection.
 
-	int rv = vector_command::execute();
+	// echo!
+	fprintf(stderr, "  %s ... %s\n",
+		type == BEGIN ? "begin" : "(",
+		end.c_str()
+	);
 
+	int rv = vector_command::execute();
+	fprintf(stderr, "  %s\n", type == BEGIN ? "end" : ")");
 	return rv;
 }
 
@@ -59,13 +67,25 @@ int if_command::execute() {
 
 	int rv = 0;
 	bool ok = false;
+
+
 	// todo -- parse end for redirection.
-	for(auto &c : clauses) {
+	for (auto &c : clauses) {
+		if (c->type == IF) {// special.
+			fprintf(stderr, "  %s ... %s\n",
+				c->clause.c_str(), end.c_str());
+		}
+		else {
+			fprintf(stderr, "  %s\n", c->clause.c_str());
+		}
+
 		if (ok) continue;
 		ok = c->evaluate();
 		if (!ok) continue;
 		rv = c->execute();
 	}
+
+	fprintf(stderr, "  end\n");
 	return rv;
 }
 
