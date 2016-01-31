@@ -52,10 +52,18 @@ public:
 	phase2 & operator=(const phase2 &) = delete;
 	phase2 & operator=(phase2 &&) = default;
 
+	void operator()(const std::string &line) { process(line); }
 	void process(const std::string &line);
 	void finish();
 
 	phase2 &operator >>=(pipe_function f) { pipe_to = f; return *this; }
+
+	template<class F>
+	phase2 &operator >>= (F &f) { 
+		using std::placeholders::_1;
+		pipe_to = std::bind(&F::operator(), &f, _1);
+		return *this;
+	}
 
 private:
 

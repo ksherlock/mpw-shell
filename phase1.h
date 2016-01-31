@@ -24,10 +24,18 @@ public:
 
 	void reset();
 
-	//template<class F>
-	//phase1 &operator >>= (F &&f) { pipe_to = pipe_function(f); return *this; }
 
 	phase1 &operator >>= (pipe_function f) { pipe_to = f; return *this; }
+
+
+	template<class F>
+	phase1 &operator >>= (F &f) { 
+		using std::placeholders::_1;
+		pipe_to = std::bind(&F::operator(), &f, _1);
+		return *this;
+	}
+
+
 
 private:
 	std::string scratch;

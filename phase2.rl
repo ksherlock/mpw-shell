@@ -14,9 +14,51 @@
 
 	action not_special { !special() }
 
+
+	escape = 0xb6;
 	ws = [ \t];
-	
+
+
+	escape_seq =
+		escape any
+	;
+
+	sstring = 
+		[']
+		( (any-[']) )*
+		[']
+		$err{
+			throw std::runtime_error("### MPW Shell - 's must occur in pairs.");
+		}
+	;
+
+	vstring = 
+		[{]
+		( (any-[{]) )*
+		[}]
+		$err{
+			throw std::runtime_error("### MPW Shell - 's must occur in pairs.");
+		}
+	;
+
+	# double-quoted string.
+	dstring =
+		["]
+		(
+			escape_seq
+			|
+			(any-escape-["])
+		)*
+		["]
+		$err{
+			throw std::runtime_error("### MPW Shell - \"s must occur in pairs.");
+		}
+	;
+
+
+
 	main := |*
+
 		'||' when not_special => {
 				flush();
 				parse(PIPE_PIPE, std::string(ts, te));
@@ -27,23 +69,42 @@
 				parse(AMP_AMP, std::string(ts, te));
 		};
 
-		'(' when not_special => {
+
+		# ( evaluate (1+2) ) is lparen, eval, rparen.
+		# need to balance parens here and terminate a special token when it goes negative.
+
+
+		'(' => {
+			if (special()) {
+				pcount++;
+				scratch.push_back(fc);
+			} else {
 				flush();
 				parse(LPAREN, std::string(ts, te));
+			}
 		};
 
-		# ) may include redirection so start a new token but don't parse it yet.
-		')' when not_special => {
+		')' => {
+			if (special() && pcount-- > 0) scratch.push_back(fc);
+			else {			
 				flush();
 				scratch.push_back(fc);
 				type = RPAREN;
+			}
 		};
 
-		# todo -- also add in strings and escapes.
 
 		';' => { flush(); parse(SEMI, ";"); };
+
 		ws  => { if (!scratch.empty()) scratch.push_back(fc); };
-		any => { scratch.push_back(fc); };
+
+		sstring => { scratch.append(ts, te); };
+		dstring => { scratch.append(ts, te); };
+		vstring => { scratch.append(ts, te); };
+		escape_seq => { scratch.append(ts, te); };
+
+
+		(any-escape-['"{]) => { scratch.push_back(fc); };
 	*|;
 }%%
 
@@ -80,7 +141,7 @@
 		BEGIN %eof{ type = BEGIN; return; };
 		BEGIN ws => { type = BEGIN; return; };
 
-		')' => { type = LPAREN; return; };
+		'(' => { type = LPAREN; return; };
 	*|;
 
 }%%
@@ -106,6 +167,7 @@ void phase2::flush() {
 	scratch.clear();
 }
 
+/* slightly wrong since whitespace is needed for it to be special. */
 bool phase2::special() {
 	if (!type) classify();
 
@@ -140,6 +202,7 @@ void phase2::classify() {
 
 void phase2::process(const std::string &line) {
 	
+	int pcount = 0; // special form parens cannot cross lines.
 
 	int cs;
 	int act;
@@ -156,6 +219,8 @@ void phase2::process(const std::string &line) {
 	%% write exec;
 
 	flush();
+	// 2 NLs to make the stack reduce.  harmless if in a multi-line constuct.
+	parse(NL, "");
 	parse(NL, "");
 
 	exec();
@@ -185,6 +250,8 @@ void phase2::exec() {
 
 phase2::phase2() {
 	parser = std::move(phase2_parser::make());
+	//parser->trace(stdout, " ] ");
+
 }
 
 #pragma mark - phase2_parser
