@@ -65,9 +65,13 @@ class mapped_file : public mapped_file_base {
 
 public:
 
-	typedef char *iterator;
-	typedef const char *const_iterator;		
+	typedef unsigned char value_type;
 
+	typedef value_type *iterator;
+	typedef const value_type *const_iterator;
+
+	typedef value_type &reference ;
+	typedef const value_type &const_reference;
 
 
 	mapped_file() = default;
@@ -87,25 +91,38 @@ public:
 	}
 
 
-	const char *const_data() const {
-		return (const char *)_data;
+	const value_type *data() const {
+		return (const value_type *)_data;
 	}
 
-	const_iterator const_begin() const {
-		return const_data();
-	}
-	const_iterator const_end() const {
-		return const_data() + size();
+	value_type *data() {
+		return _flags == readonly ? (value_type *)nullptr : (value_type *)_data;
 	}
 
-	char *data() const {
-		return _flags == readonly ? (char *)nullptr : (char *)_data;
+	const_iterator cbegin() const {
+		return data();
 	}
-	iterator begin() const {
+
+	const_iterator cend() const {
+		return data() + size();
+	}
+
+	const_iterator begin() const {
+		return cbegin();
+	}
+	
+	const_iterator end() const {
+		return cend();
+	}
+
+
+
+
+	iterator begin() {
 		return _flags == readonly ? (iterator)nullptr : (iterator)_data;
 	}
 
-	iterator end() const {
+	iterator end() {
 		return _flags == readonly ? (iterator)nullptr : (iterator)_data + size();
 	}
 
