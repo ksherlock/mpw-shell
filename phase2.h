@@ -43,7 +43,7 @@ protected:
 class phase2  {
 	
 public:
-	typedef std::function<void(command_ptr &&)> pipe_function;
+	typedef std::function<void(command_ptr_vector &&)> pipe_function;
 
 	phase2();
 	phase2(const phase2 &) = delete;

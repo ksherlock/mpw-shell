@@ -202,6 +202,8 @@ void phase2::classify() {
 
 void phase2::process(const std::string &line) {
 	
+	if (line.empty()) { finish(); return; }
+
 	int pcount = 0; // special form parens cannot cross lines.
 
 	int cs;
@@ -238,12 +240,13 @@ void phase2::parse(int token, std::string &&s) {
 void phase2::exec() {
 
 	if (pipe_to && parser) {
+		command_ptr_vector tmp;
 		for (auto &p : parser->command_queue) {
-			if (p) {
-				pipe_to(std::move(p));
-			}
+			if (p) tmp.emplace_back(std::move(p));
 		}
 		parser->command_queue.clear();
+
+		if (!tmp.empty()) pipe_to(std::move(tmp));
 	}
 	
 }

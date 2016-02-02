@@ -14,9 +14,10 @@
 	nl = '\n' | '\r';
 
 	action push_token {
-		if (!scratch.empty()) {
+		if (!scratch.empty() || quoted) {
 			tokens.emplace_back(std::move(scratch));
 			scratch.clear();
+			quoted = false;
 		}
 	}
 
@@ -61,6 +62,7 @@
 		[']
 		( (any-nl-[']) $push_back )*
 		[']
+		${ quoted = true; }
 		$err{
 			throw std::runtime_error("### MPW Shell - 's must occur in pairs.");
 		}
@@ -88,6 +90,7 @@
 			(any-escape-["]) $push_back
 		)*
 		["]
+		${ quoted = true; }
 		$err{
 			throw std::runtime_error("### MPW Shell - \"s must occur in pairs.");
 		}
@@ -221,6 +224,8 @@ std::vector<token> tokenize(const std::string &s, bool eval)
 {
 	std::vector<token> tokens;
 	std::string scratch;
+	bool quoted = false; // found a quote character ("" creates a token)
+
 
 	%%machine tokenizer;
 	%% write data;
@@ -240,7 +245,7 @@ std::vector<token> tokenize(const std::string &s, bool eval)
 		throw std::runtime_error("MPW Shell - Lexer error.");
 	}
 
-	if (!scratch.empty()) {
+	if (!scratch.empty() || quoted) {
 		tokens.emplace_back(std::move(scratch));
 		scratch.clear();
 	}

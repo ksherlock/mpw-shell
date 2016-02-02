@@ -17,6 +17,7 @@
 #include "command.h"
 
 #include "mapped_file.h"
+#include "error.h"
 
 //#include <histedit.h>
 #include <editline/readline.h>
@@ -29,20 +30,20 @@ void init(Environment &e) {
 }
 
 int read_file(phase1 &p, const std::string &file) {
-	mapped_file mf;
+	const mapped_file mf(file, mapped_file::readonly);
 
-	mf.open(file, mapped_file::readonly);
-	p.process(mf.const_begin(), mf.const_end(), true);
+	p.process(mf.begin(), mf.end(), true);
 
 	return 0;
 }
-int read_stdin(phase1 &p) {
+
+int read_fd(phase1 &p, int fd) {
 
 	unsigned char buffer[2048];
 	ssize_t size;
 
 	for (;;) {
-		size = read(STDIN_FILENO, buffer, sizeof(buffer));
+		size = read(fd, buffer, sizeof(buffer));
 		if (size == 0) break;
 		if (size < 0) {
 			if (errno == EINTR) continue;
@@ -77,7 +78,12 @@ int interactive(phase1 &p) {
 		free(cp);
 
 		if (s.empty()) continue;
-		add_history(s.c_str());
+
+		// don't add if same as previous entry.
+		HIST_ENTRY *he = current_history();
+		if (he == nullptr || s != he->line)
+				add_history(s.c_str());
+
 		s.push_back('\n');
 		try {
 			p.process(s);
@@ -107,23 +113,38 @@ int main(int argc, char **argv) {
 
 	phase1 p1;
 	phase2 p2;
-	p1 >>= p2;
 
-	p2 >>= [&e](command_ptr &&ptr) {
-		fdmask fds;
-		ptr->execute(e, fds);
-	};
-	/*
 	p1 >>= [&p2](std::string &&s) {
-
-		fprintf(stdout, " -> %s\n", s.c_str());
-		p2.process(s);
+		if (s.empty()) p2.finish();
+		else p2(std::move(s));
 	};
-	*/
-	read_file(p1, "/Users/kelvin/mpw/Startup");
-	p2.finish();
 
-	interactive(p1);
+	p2 >>= [&e](command_ptr_vector &&v) {
+
+		for (auto iter = v.begin(); iter != v.end(); ++iter) {
+			auto &ptr = *iter;
+			fdmask fds;
+			try {
+				ptr->execute(e, fds);
+			} catch (execution_of_input_terminated &ex) {
+				if (!(ptr->terminal() && ++iter == v.end())) {
+					fprintf(stderr, "%s\n", ex.what());
+				}
+				return;
+			}
+		}
+	};
+
+	fprintf(stdout, "MPW Shell 0.0\n");
+	e.startup(true);
+	read_file(p1, "/Users/kelvin/mpw/Startup");
+	//p2.finish();
+	e.startup(false);
+
+	if (isatty(STDIN_FILENO))
+		interactive(p1);
+	else 
+		read_fd(p1, STDIN_FILENO);
 	p2.finish();
 
 	return 0;
