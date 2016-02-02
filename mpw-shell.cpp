@@ -16,6 +16,8 @@
 #include "phase2.h"
 #include "command.h"
 
+#include "mapped_file.h"
+
 //#include <histedit.h>
 #include <editline/readline.h>
 
@@ -26,6 +28,14 @@ void init(Environment &e) {
 	e.set("echo", std::string("1"));
 }
 
+int read_file(phase1 &p, const std::string &file) {
+	mapped_file mf;
+
+	mf.open(file, mapped_file::readonly);
+	p.process(mf.const_begin(), mf.const_end(), true);
+
+	return 0;
+}
 int read_stdin(phase1 &p) {
 
 	unsigned char buffer[2048];
@@ -110,6 +120,9 @@ int main(int argc, char **argv) {
 		p2.process(s);
 	};
 	*/
+	read_file(p1, "/Users/kelvin/mpw/Startup");
+	p2.finish();
+
 	interactive(p1);
 	p2.finish();
 
