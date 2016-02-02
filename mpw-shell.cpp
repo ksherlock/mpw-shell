@@ -16,7 +16,8 @@
 #include "phase2.h"
 #include "command.h"
 
-
+//#include <histedit.h>
+#include <editline/readline.h>
 
 // should set {MPW}, {MPWVersion}, then execute {MPW}StartUp
 void init(Environment &e) {
@@ -56,6 +57,39 @@ int read_stdin(phase1 &p) {
 	return 0;
 }
 
+int interactive(phase1 &p) {
+
+	for(;;) {
+		char *cp = readline("# ");
+		if (!cp) break;
+
+		std::string s(cp);
+		free(cp);
+
+		if (s.empty()) continue;
+		add_history(s.c_str());
+		s.push_back('\n');
+		try {
+			p.process(s);
+
+		} catch(std::exception &ex) {
+			fprintf(stderr, "%s\n", ex.what());
+			p.reset();
+		}
+
+	}
+
+	try {
+		p.finish();
+	} catch(std::exception &ex) {
+		fprintf(stderr, "%s\n", ex.what());
+		p.reset();
+	}
+
+	fprintf(stdout, "\n");
+	return 0;
+}
+
 int main(int argc, char **argv) {
 	
 	Environment e;
@@ -76,24 +110,8 @@ int main(int argc, char **argv) {
 		p2.process(s);
 	};
 	*/
-	read_stdin(p1);
+	interactive(p1);
 	p2.finish();
 
-/*
-	try {
-		head = read_fd(0);
-	} catch (std::exception &ex) {
-		fprintf(stderr, "%s\n", ex.what());
-		exit(1);
-	}
-
-
-	try {
-		int status = execute(head);
-		exit(status);
-	} catch(std::exception &ex) {
-		fprintf(stderr, "%s\n", ex.what());
-		exit(1);
-	}
-*/
+	return 0;
 }

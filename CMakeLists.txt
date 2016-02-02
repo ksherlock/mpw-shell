@@ -113,6 +113,8 @@ add_executable(mpw-shell mpw-shell.cpp mpw-shell-read.cpp mpw-shell-token.cpp mp
 	mpw-shell-parser.cpp value.cpp mpw-shell-quote.cpp 
 	phase1.cpp phase2.cpp phase2-parser.cpp command.cpp environment.cpp builtins.cpp)
 
+target_link_libraries(mpw-shell edit)
+
 # all this for -std=c++14
 set_property (TARGET mpw-shell PROPERTY CXX_STANDARD 14)
 set_property (TARGET mpw-shell PROPERTY CXX_STANDARD_REQUIRED TRUE)
