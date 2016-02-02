@@ -4,6 +4,9 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <new>
+
+
 
 // environment has a bool which indicates if exported.
 struct EnvironmentEntry {
@@ -58,7 +61,8 @@ public:
 
 	bool and_or(bool v) { std::swap(v, _and_or); return v; }
 
-	int status(int i);
+	int status(int i, bool throw_up = true);
+	int status(int i, const std::nothrow_t &);
 
 	constexpr bool startup() const noexcept { return _startup; }
 	constexpr void startup(bool tf) noexcept { _startup = tf; }
@@ -88,6 +92,10 @@ public:
 private:
 	// magic variables.
 
+	friend class indent_helper;
+
+	int _indent = 0;
+
 	bool _exit = false;
 	bool _test = false;
 
@@ -95,11 +103,20 @@ private:
 
 	bool _echo = false;
 	int _status = 0;
-	int _indent = 0;
 	bool _startup = false;
 	bool _passthrough = false;
 
 	std::unordered_map<std::string, EnvironmentEntry> _table;
+};
+
+class indent_helper {
+public:
+	indent_helper(Environment &e) : env(e) { env._indent++; }
+	void release() { if (active) { active = false; env._indent--; }}
+	~indent_helper() { if (active) env._indent--; }
+private:
+	Environment &env;
+	bool active = true;
 };
 
 

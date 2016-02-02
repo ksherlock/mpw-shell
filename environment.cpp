@@ -2,6 +2,8 @@
 #include <cstdio>
 #include <cstdarg>
 
+#include "error.h"
+
 namespace {
 
 
@@ -73,7 +75,7 @@ namespace {
 	}
 
 
-	int Environment::status(int i) {
+	int Environment::status(int i, const std::nothrow_t &) {
 
 		if (_status == i) return i;
 
@@ -82,21 +84,27 @@ namespace {
 		return i;
 	}
 
-/*
-	int Environment::status(int i) {
+	int Environment::status(int i, bool throwup) {
 		status(i, std::nothrow);
-		if (_exit) {
-			throw std::runtime_error("Execution of input terminated.");
+
+		if (throwup && _exit && i) {
+			throw execution_of_input_terminated(i);
 		}
 		return i;
 	}
 
 	void Environment::echo(const char *fmt, ...) {
-		if (_echo) {}
+		if (_echo && !_startup) {
+			for (unsigned i = 0; i < _indent; ++i) {
+				fputc(' ', stderr);
+				fputc(' ', stderr);
+			}
 			va_list ap;
 			va_start(ap, fmt);
 			va_end(ap);
 			vfprintf(stderr, fmt, ap);
+			fputc('\n', stderr);
 		}
 	}
-*/
+
+

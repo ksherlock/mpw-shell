@@ -113,18 +113,18 @@ command::~command()
  * echo and error should respect the active fdmask.
  */
 
-int simple_command::execute(Environment &env, const fdmask &fds) {
+int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 	std::string s = expand_vars(text, env);
 
-	if (env.echo()) fprintf(stderr, "  %s\n", s.c_str()); 
+	env.echo("%s", s.c_str()); 
 
 	process p;
 	try {
 		auto tokens = tokenize(s, false);
 		parse_tokens(std::move(tokens), p);
 	} catch(std::exception &e) {
-		fprintf(stderr, "%s", e.what());
-		return env.status(-4);
+		fprintf(stderr, "%s\n", e.what());
+		return env.status(-4, throwup);
 	}
 
 	if (p.arguments.empty()) return 0;
@@ -137,7 +137,7 @@ int simple_command::execute(Environment &env, const fdmask &fds) {
 	auto iter = builtins.find(name);
 	if (iter != builtins.end()) {
 		int status = iter->second(env, p.arguments, newfds);
-		return env.status(status);
+		return env.status(status, throwup);
 	}
 
 	if (env.test()) return env.status(0);
@@ -148,54 +148,56 @@ int simple_command::execute(Environment &env, const fdmask &fds) {
 
 	int status = execute_external(env, p.arguments, newfds);
 
-	return env.status(status);
+	return env.status(status, throwup);
 }
 
-int evaluate_command::execute(Environment &env, const fdmask &fds) {
+int evaluate_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
 	std::string s = expand_vars(text, env);
 
-	if (env.echo()) fprintf(stderr, "  %s\n", s.c_str());
+	env.echo("%s", s.c_str());
 
-	auto tokens = tokenize(s, true);
-	if (tokens.empty()) return 0;
+	try {
+		auto tokens = tokenize(s, true);
+		if (tokens.empty()) return 0;
 
-	int status =  builtin_evaluate(env, std::move(tokens), fds);
+		int status = builtin_evaluate(env, std::move(tokens), fds);
 
-	return env.status(status);
+		return env.status(status, throwup);
+	} catch (std::exception &e) {
+		fprintf(stderr, "%s\n", e.what());
+		return env.status(1, throwup);
+	}
 }
 
 
-int or_command::execute(Environment &e, const fdmask &fds) {
+int or_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 
 	int rv = 0;
-	bool pv = e.and_or(true);
 
 	for (auto &c : children) {
-		rv = c->execute(e, fds);
+		if (!c) continue;
+		rv = c->execute(e, fds, false);
 		if (rv == 0) return rv;
 	}
-	e.and_or(pv);
 
 	return e.status(rv);
 }
 
-int and_command::execute(Environment &e, const fdmask &fds) {
+int and_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 
 	int rv = 0;
-	bool pv = e.and_or(true);
-
 	for (auto &c : children) {
-		rv = c->execute(e, fds);
+		if (!c) continue;
+		c->execute(e, fds, false);
 		if (rv != 0) return rv;
 	}
-	e.and_or(pv);
 
 	return rv;
 }
 
 
-int vector_command::execute(Environment &e, const fdmask &fds) {
+int vector_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 
 	int rv = 0;
 	for (auto &c : children) {
@@ -206,10 +208,10 @@ int vector_command::execute(Environment &e, const fdmask &fds) {
 	return e.status(rv);
 }
 
-int error_command::execute(Environment &e, const fdmask &fds) {
+int error_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 	std::string s = expand_vars(text, e);
 
-	if (e.echo()) fprintf(stderr, "  %s\n", s.c_str());
+	e.echo("%s", s.c_str());
 
 	switch(type) {
 	case END:
@@ -249,14 +251,14 @@ namespace {
 	}
 }
 
-int begin_command::execute(Environment &env, const fdmask &fds) {
+int begin_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 	// todo -- parse end for redirection.
 
 	std::string b = expand_vars(begin, env);
 	std::string e = expand_vars(end, env);
 
 	// echo!
-	if (env.echo()) fprintf(stderr, "  %s ... %s\n",
+	env.echo("%s ... %s",
 		b.c_str(),
 		e.c_str()
 	);
@@ -276,8 +278,13 @@ int begin_command::execute(Environment &env, const fdmask &fds) {
 	newfds |= fds;
 	if (status) return env.status(status);
 
-	int rv = vector_command::execute(env, newfds);
-	if (env.echo()) fprintf(stderr, "  %s\n", type == BEGIN ? "end" : ")");
+	int rv;
+	{
+		indent_helper indent(env);
+		rv = vector_command::execute(env, newfds);
+	}
+
+	env.echo("%s", type == BEGIN ? "end" : ")");
 
 	return env.status(rv);
 }
@@ -286,7 +293,7 @@ namespace {
 
 
 
-	bool evaluate(int type, const std::string &s, Environment &env) {
+	int evaluate(int type, const std::string &s, Environment &env) {
 
 		auto tokens = tokenize(s, true);
 		std::reverse(tokens.begin(), tokens.end());
@@ -305,8 +312,7 @@ namespace {
 				}
 				catch (std::exception &ex) {
 					fprintf(stderr, "%s\n", ex.what());
-					env.status(-5);
-					e = 0;
+					return -5;
 				}
 				break;
 
@@ -315,15 +321,18 @@ namespace {
 				if (tokens.size() > 1) {
 					fprintf(stderr, "### Else - Missing if keyword.\n");
 					fprintf(stderr, "# Usage - Else [if expression...]\n");
-					env.status(-3);
-					e = 0;
+					return -3;
 				}
 		}
-		return e;
+		return !!e;
 	}
 }
 
-int if_command::execute(Environment &env, const fdmask &fds) {
+/*
+ * the entire command prints even if there is an error with the expression.
+ *
+ */
+int if_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
 	int rv = 0;
 	bool ok = false;
@@ -334,37 +343,29 @@ int if_command::execute(Environment &env, const fdmask &fds) {
 	fdmask newfds;
 	int status = check_ends(e, newfds);
 	newfds |= fds;
-	if (status) return env.status(status);
+	if (status) {
+		rv = status;
+		ok = true;
+	}
 
 	for (auto &c : clauses) {
 		std::string s = expand_vars(c->clause, env);
 
-		if (env.echo()) {
-			if (c->type == IF) { // special.
-				fprintf(stderr, "  %s ... %s\n",
-					s.c_str(), e.c_str());
-			}
-			else {
-				fprintf(stderr, "  %s\n", s.c_str());
-			}
-		}
+		if (c->type == IF)
+			env.echo("%s ... %s", s.c_str(), e.c_str());
+		else
+			env.echo("%s", s.c_str());
 
 		if (ok) continue;
-		ok = evaluate(c->type, s, env);
-		if (!ok) continue;
-		rv = c->execute(env, newfds);
+		{
+			indent_helper indent(env);
+			int tmp = evaluate(c->type, s, env);
+			if (tmp < 0) { ok = true; rv = tmp; }
+			else rv = c->execute(env, newfds);
+		}
 	}
 
-	if (env.echo()) fprintf(stderr, "  end\n");
+	env.echo("end");
 	return env.status(rv);
 }
 
-/*
-int if_else_clause::execute() {
-	return 0;
-}
-*/
-
-bool if_else_clause::evaluate(const Environment &e) {
-	return false;
-}

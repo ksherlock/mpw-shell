@@ -1,6 +1,7 @@
 #ifndef __command_h__
 #define __command_h__
 
+#include <new>
 #include <memory>
 #include <vector>
 #include <array>
@@ -20,9 +21,13 @@ struct command {
 	command(int t = 0) : type(t)
 	{}
 
+	virtual bool terminal() const noexcept {
+		return type == EVALUATE || type == COMMAND;
+	}
+
 	int type = 0;
 	virtual ~command();
-	virtual int execute(Environment &e, const fdmask &fds) = 0;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup = true) = 0;
 };
 
 struct error_command : public command {
@@ -32,7 +37,7 @@ struct error_command : public command {
 	{}
 
 	std::string text;
-	virtual int execute(Environment &e, const fdmask &fds) override final;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup = true) override final;
 };
 
 struct simple_command  : public command {
@@ -42,7 +47,7 @@ struct simple_command  : public command {
 
 	std::string text;
 
-	virtual int execute(Environment &e, const fdmask &fds) final override;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup = true) final override;
 };
 
 struct evaluate_command  : public command {
@@ -52,7 +57,7 @@ struct evaluate_command  : public command {
 
 	std::string text;
 
-	virtual int execute(Environment &e, const fdmask &fds) final override;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup = true) final override;
 };
 
 struct binary_command : public command {
@@ -63,6 +68,10 @@ struct binary_command : public command {
 
 	command_ptr_pair children;
 
+	virtual bool terminal() const noexcept final override {
+		return children[0]->terminal() && children[1]->terminal();
+	}
+
 };
 
 struct or_command : public binary_command {
@@ -70,7 +79,7 @@ struct or_command : public binary_command {
 		binary_command(PIPE_PIPE, std::move(a), std::move(b)) 
 	{}
 
-	virtual int execute(Environment &e, const fdmask &fds) final override;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
 };
 
 struct and_command : public binary_command {
@@ -78,7 +87,7 @@ struct and_command : public binary_command {
 		binary_command(AMP_AMP, std::move(a), std::move(b)) 
 	{}
 
-	virtual int execute(Environment &e, const fdmask &fds) final override;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
 };
 
 
@@ -98,7 +107,7 @@ struct vector_command : public command {
 	{}
 
 	command_ptr_vector children;
-	virtual int execute(Environment &e, const fdmask &fds) override;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup = true) override;
 };
 
 struct begin_command : public vector_command {
@@ -110,7 +119,7 @@ struct begin_command : public vector_command {
 	std::string begin;
 	std::string end; 
 
-	virtual int execute(Environment &e, const fdmask &fds) final override;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
 };
 
 typedef std::unique_ptr<struct if_else_clause> if_else_clause_ptr;
@@ -127,7 +136,7 @@ struct if_command : public command {
 	clause_vector_type clauses;
 	std::string end;
 
-	virtual int execute(Environment &e, const fdmask &fds) final override;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
 };
 
 struct if_else_clause : public vector_command {
@@ -139,7 +148,7 @@ struct if_else_clause : public vector_command {
 
 	std::string clause;
 
-	bool evaluate(const Environment &e);
+	//bool evaluate(const Environment &e);
 };
 
 #endif
