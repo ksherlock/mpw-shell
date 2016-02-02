@@ -9,23 +9,20 @@
 #include <stdlib.h>
 #include <cerrno>
 
-#define NOCOMMAND
 #include "mpw-shell.h"
+#include "fdset.h"
 
 #include "phase1.h"
 #include "phase2.h"
 #include "command.h"
 
 
-std::unordered_map<std::string, EnvironmentEntry> Environment;
-
-
-
 
 // should set {MPW}, {MPWVersion}, then execute {MPW}StartUp
-void init(void) {
-	Environment.emplace("status", std::string("0"));
-	Environment.emplace("exit", std::string("1")); // terminate script on error.
+void init(Environment &e) {
+	e.set("status", std::string("0"));
+	e.set("exit", std::string("1")); // terminate script on error.
+	e.set("echo", std::string("1"));
 }
 
 int read_stdin(phase1 &p) {
@@ -61,18 +58,16 @@ int read_stdin(phase1 &p) {
 
 int main(int argc, char **argv) {
 	
-	init();
-
-	command_ptr head;
-
+	Environment e;
+	init(e);
 
 	phase1 p1;
 	phase2 p2;
 	p1 >>= p2;
 
-	p2 >>= [](command_ptr &&ptr) {
-		printf("command: %d\n", ptr->type);
-		ptr->execute();
+	p2 >>= [&e](command_ptr &&ptr) {
+		fdmask fds;
+		ptr->execute(e, fds);
 	};
 	/*
 	p1 >>= [&p2](std::string &&s) {

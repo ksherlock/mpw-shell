@@ -34,10 +34,10 @@
 
 	vstring = 
 		[{]
-		( (any-[{]) )*
+		( (any-[}]) )*
 		[}]
 		$err{
-			throw std::runtime_error("### MPW Shell - 's must occur in pairs.");
+			throw std::runtime_error("### MPW Shell - {s must occur in pairs.");
 		}
 	;
 
@@ -265,8 +265,28 @@ void phase2_parser::parse_failure() {
 }
 
 void phase2_parser::syntax_error(int yymajor, std::string &yyminor) {
-	if (!error)
-		fprintf(stderr, "### Parse error near %s\n", yyminor.c_str());
+/*
+	switch (yymajor) {
+	case END:
+		fprintf(stderr, "### MPW Shell - Extra END command.\n");
+		break;
 
+	case RPAREN:
+		fprintf(stderr, "### MPW Shell - Extra ) command.\n");
+		break;
+
+	case ELSE:
+	case ELSE_IF:
+		fprintf(stderr, "### MPW Shell - ELSE must be within IF ... END.\n");
+		break;
+
+	default:
+		fprintf(stderr, "### Parse error near %s\n", yyminor.c_str());
+		break;
+	}
+*/
+
+	
+	fprintf(stderr, "### MPW Shell - Parse error near %s\n", yymajor ? yyminor.c_str() : "EOF");
 	error = true;
 }

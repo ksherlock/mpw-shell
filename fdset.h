@@ -61,7 +61,8 @@ class fdmask {
 
 
 	int operator[](unsigned index) const {
-		return _fds[index];
+		if (_fds[index] >= 0) return _fds[index];
+		return default_fd(index);
 	}
 
 	fdmask &operator|=(const fdmask &rhs) {
@@ -72,6 +73,12 @@ class fdmask {
 	}
 
 	private:
+
+		static int default_fd(int index) {
+			static constexpr std::array<int, 3> _default_fds = {{ STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO }};
+			return _default_fds[index];
+		}
+
 	friend class fdset;
 	std::array<int, 3> _fds = {{ -1, -1, -1 }};
 };

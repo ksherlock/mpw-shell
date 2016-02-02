@@ -46,9 +46,11 @@
 				// flag to pass through vs "" ?
 				auto iter = env.find(var);
 				if (iter == env.end()) {
-					line.push_back('{');
-					line.append(var);
-					line.push_back('}');
+					if (env.passthrough()) {
+						line.push_back('{');
+						line.append(var);
+						line.push_back('}');
+					}
 				}
 				else {
 					line.append((std::string)iter->second);
@@ -112,7 +114,7 @@
  * set q '"' ; echo {q} dsfsdf"
  */
 
-std::string expand_vars(const std::string &s, const std::unordered_map<std::string, EnvironmentEntry> &env) {
+std::string expand_vars(const std::string &s, const Environment &env) {
 	
 	if (s.find('{') == s.npos) return s;
 	std::string var;

@@ -3,6 +3,7 @@
 
 #include "fdset.h"
 #include "value.h"
+#include "environment.h"
 
 #include <string>
 #include <vector>
@@ -11,14 +12,17 @@
 #include <cstdio>
 #include <cctype>
 
+//MAXPATHLEN
+#include <sys/param.h>
+
 namespace {
 
-
+/*
 	std::string &lowercase(std::string &s) {
 		std::transform(s.begin(), s.end(), s.begin(), [](char c){ return std::tolower(c); });
 		return s;
 	}
-
+*/
 	// doesn't handle flag arguments but builtins don't have arguments.
 
 	template<class FX>
@@ -39,83 +43,6 @@ namespace {
 
 		return out;
 	}
-
-
-
-#if 0
-	/*
-	 * the fdopen() will assume ownership of the fd and close it.
-	 * this is not desirable.
-	 */
-
-	// linux uses size_t.  *BSD uses int.
-	int readfn(void *cookie, char *buffer, int size) {
-		return ::read((int)(std::ptrdiff_t)cookie, buffer, size);
-	}
-
-	int readfn(void *cookie, char *buffer, size_t size) {
-		return ::read((int)(std::ptrdiff_t)cookie, buffer, size);
-	}
-
-	int writefn(void *cookie, const char *buffer, int size) {
-		return ::write((int)(std::ptrdiff_t)cookie, buffer, size);
-	}
-
-	int writefn(void *cookie, const char *buffer, size_t size) {
-		return ::write((int)(std::ptrdiff_t)cookie, buffer, size);
-	}
-
-	FILE *file_stream(int index, int fd) {
-		if (fd < 0) {
-			switch (index) {
-				case 0: return stdin;
-				case 1: return stdout;
-				case 2: return stderr;
-				default:
-				return stderr;
-			}
-		}
-		// will not close.
-
-		#ifdef __linux__
-		/* Linux */
-		cookie_io_functions_t io = { readfn, writefn, nullptr, nullptr };
-		return fopencookie((void *)(std::ptrdiff_t)fd, "w+", io);
-		#else
-		/* *BSD */
-		return funopen((const void *)(std::ptrdiff_t)fd, readfn, writefn, nullptr, nullptr);
-		#endif
-
-	}
-
-
-	class io_helper {
-
-	public:
-		FILE *in;
-		FILE *out;
-		FILE *err;
-
-		io_helper(const fdmask &fds) {
-			in = file_stream(0, fds[0]);
-			out = file_stream(1, fds[1]);
-			err = file_stream(2, fds[2]);
-		}
-
-		~io_helper() {
-			#define __(x, target) if (x != target) fclose(x)
-			__(in, stdin);
-			__(out, stdout);
-			__(err, stderr);
-			#undef __
-		}
-
-		io_helper() = delete;
-		io_helper(const io_helper &) = delete;
-		io_helper &operator=(const io_helper &) = delete;
-	};
-
-#endif
 
 }
 
@@ -142,31 +69,21 @@ inline int fputc(int c, int fd) {
 }
 
 
-int builtin_unset(const std::vector<std::string> &tokens, const fdmask &) {
+int builtin_unset(Environment &env, const std::vector<std::string> &tokens, const fdmask &) {
 	for (auto iter = tokens.begin() + 1; iter != tokens.end(); ++iter) {
 
-		std::string name = *iter;
-		lowercase(name);
+		const std::string &name = *iter;
 
-		Environment.erase(name);
+		env.unset(name);
 	}
 	// unset [no arg] removes ALL variables
 	if (tokens.size() == 1) {
-		Environment.clear();
+		env.unset();
 	}
 	return 0;
 }
 
-
-template <class UO, class K, class M>
-void insert_or_assign(UO &map, K&& k, M&& obj) {
-
-	auto iter = map.find(k);
-	if (iter != map.end()) iter->second = std::forward<M>(obj);
-	else map.emplace(std::make_pair(std::forward<K>(k), std::forward<M>(obj)));
-}
-
-int builtin_set(const std::vector<std::string> &tokens, const fdmask &fds) {
+int builtin_set(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
 	// set var name  -- set
 	// set var -- just print the value
 
@@ -177,7 +94,7 @@ int builtin_set(const std::vector<std::string> &tokens, const fdmask &fds) {
 
 	if (tokens.size() == 1) {
 
-		for (const auto &kv : Environment) {
+		for (const auto &kv : env) {
 			std::string name = quote(kv.first);
 			std::string value = quote(kv.second);
 
@@ -190,9 +107,8 @@ int builtin_set(const std::vector<std::string> &tokens, const fdmask &fds) {
 
 	if (tokens.size() == 2) {
 		std::string name = tokens[1];
-		lowercase(name);
-		auto iter = Environment.find(name);
-		if 	(iter == Environment.end()) {
+		auto iter = env.find(name);
+		if 	(iter == env.end()) {
 			fprintf(stderr, "### Set - No variable definition exists for %s.\n", name.c_str());
 			return 2;
 		}
@@ -220,15 +136,14 @@ int builtin_set(const std::vector<std::string> &tokens, const fdmask &fds) {
 
 	std::string name = tokens[1+exported];
 	std::string value = tokens[2+exported];
-	lowercase(name);
 
-	Environment[name] = EnvironmentEntry(std::move(value), exported);
+	env.set(name, value, exported);
 	return 0;
 }
 
 
 
-static int export_common(bool export_or_unexport, const std::vector<std::string> &tokens, const fdmask &fds) {
+static int export_common(Environment &env, bool export_or_unexport, const std::vector<std::string> &tokens, const fdmask &fds) {
 
 	const char *name = export_or_unexport ? "Export" : "Unexport";
 
@@ -270,7 +185,7 @@ static int export_common(bool export_or_unexport, const std::vector<std::string>
 
 		name = export_or_unexport ? "Export " : "Unexport ";
 
-		for (const auto &kv : Environment) {
+		for (const auto &kv : env) {
 			const std::string& vname = kv.first;
 			if (kv.second == export_or_unexport)
 				fprintf(stdout, "%s%s\n", flags._s ? "" : name, quote(vname).c_str());
@@ -283,9 +198,8 @@ static int export_common(bool export_or_unexport, const std::vector<std::string>
 		if (flags._r || flags._s) goto conflict;
 
 		for (std::string s : argv) {
-			lowercase(s);
-			auto iter = Environment.find(s);
-			if (iter != Environment.end()) iter->second = export_or_unexport;
+			auto iter = env.find(s);
+			if (iter != env.end()) iter->second = export_or_unexport;
 		}	
 		return 0;
 	}
@@ -295,21 +209,20 @@ conflict:
 	fprintf(stderr, "# Usage - %s [-r | -s | name...]\n", name);
 	return 1;
 }
-int builtin_export(const std::vector<std::string> &tokens, const fdmask &fds) {
 
-	//io_helper io(fds);
-	return export_common(true, tokens, fds);
+int builtin_export(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
+
+	return export_common(env, true, tokens, fds);
 }
 
-int builtin_unexport(const std::vector<std::string> &tokens, const fdmask &fds) {
+int builtin_unexport(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
 
-	//io_helper io(fds);
-	return export_common(false, tokens, fds);
+	return export_common(env, false, tokens, fds);
 }
 
 
 
-int builtin_echo(const std::vector<std::string> &tokens, const fdmask &fds) {
+int builtin_echo(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
 
 	//io_helper io(fds);
 
@@ -333,7 +246,7 @@ int builtin_echo(const std::vector<std::string> &tokens, const fdmask &fds) {
 	return 0;
 }
 
-int builtin_quote(const std::vector<std::string> &tokens, const fdmask &fds) {
+int builtin_quote(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
 	// todo...
 
 	//io_helper io(fds);
@@ -359,7 +272,7 @@ int builtin_quote(const std::vector<std::string> &tokens, const fdmask &fds) {
 	return 0;
 }
 
-int builtin_parameters(const std::vector<std::string> &argv, const fdmask &fds) {
+int builtin_parameters(Environment &env, const std::vector<std::string> &argv, const fdmask &fds) {
 
 	//io_helper io(fds);
 
@@ -371,7 +284,7 @@ int builtin_parameters(const std::vector<std::string> &argv, const fdmask &fds) 
 }
 
 
-int builtin_directory(const std::vector<std::string> &tokens, const fdmask &fds) {
+int builtin_directory(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
 	// directory [-q]
 	// directory path
 
@@ -416,12 +329,29 @@ int builtin_directory(const std::vector<std::string> &tokens, const fdmask &fds)
 			return 1;
 		}
 
-		return 0;
+		// todo -- pathname translation.
+		int ok = chdir(argv.front().c_str());
+		if (ok < 0) {
+			fputs("### Directory - Unable to set current directory.\n", stderr);
+			perror("chdir: ");
+			return 1;
+		}
 	}
 	else {
 		// pwd
-		return 0;
+		char buffer[MAXPATHLEN];
+		char *cp = getcwd(buffer, sizeof(buffer));
+		if (!cp) {
+			perror("getcwd: ");
+			return -1;
+		}
+		// todo -- pathname translation?
+
+		std::string s = buffer;
+		if (!q) s = quote(std::move(s));
+		fprintf(stdout, "%s\n", s.c_str());
 	}
+	return 0;
 }
 
 static bool is_assignment(int type) {
@@ -436,7 +366,7 @@ static bool is_assignment(int type) {
 	}
 }
 
-int builtin_evaluate(std::vector<token> &&tokens, const fdmask &fds) {
+int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask &fds) {
 	// evaluate expression
 	// evaluate variable = expression
 	// evaluate variable += expression
@@ -481,7 +411,6 @@ int builtin_evaluate(std::vector<token> &&tokens, const fdmask &fds) {
 		if (is_assignment(type)) {
 
 			std::string name = tokens.back().string;
-			lowercase(name);
 
 			tokens.pop_back();
 			tokens.pop_back();
@@ -490,14 +419,14 @@ int builtin_evaluate(std::vector<token> &&tokens, const fdmask &fds) {
 
 			switch(type) {
 				case '=':
-					Environment[name] = std::to_string(i);
+					env.set(name, std::to_string(i));
 					break;
 				case '+=':
 				case '-=':
 					{
 						value old;
-						auto iter = Environment.find(name);
-						if (iter != Environment.end()) old = (const std::string &)iter->second;
+						auto iter = env.find(name);
+						if (iter != env.end()) old = (const std::string &)iter->second;
 
 						switch(type) {
 							case '+=':
@@ -509,10 +438,7 @@ int builtin_evaluate(std::vector<token> &&tokens, const fdmask &fds) {
 						}
 
 						std::string s = std::to_string(i);
-						if (iter == Environment.end())
-							Environment.emplace(std::move(name), std::move(s));
-						else iter->second = std::move(s);
-
+						env.set(name, s);
 					}
 					break;
 			}
@@ -529,15 +455,6 @@ int builtin_evaluate(std::vector<token> &&tokens, const fdmask &fds) {
 	}
 	if (output == 'b') {
 		std::string tmp("0b");
-		/*
-		fputc('0', stdout);
-		fputc('b', stdout);
-		for (int j = 0; j < 32; ++j) {
-			fputc(i & 0x80000000 ? '1' : '0', stdout);
-			i <<= 1;
-		}
-		fputc('\n', stdout);
-		*/
 
 		for (int j = 0; j < 32; ++j) {
 			tmp.push_back(i & 0x80000000 ? '1' : '0');

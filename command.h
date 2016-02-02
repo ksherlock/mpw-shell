@@ -11,6 +11,9 @@ typedef std::unique_ptr<struct command> command_ptr;
 typedef std::vector<command_ptr> command_ptr_vector;
 typedef std::array<command_ptr, 2> command_ptr_pair;
 
+#include "environment.h"
+class Environment;
+class fdmask;
 
 struct command {
 
@@ -19,7 +22,17 @@ struct command {
 
 	int type = 0;
 	virtual ~command();
-	virtual int execute() = 0;
+	virtual int execute(Environment &e, const fdmask &fds) = 0;
+};
+
+struct error_command : public command {
+
+	template<class S>
+	error_command(int t, S &&s) : command(t), text(std::forward<S>(s))
+	{}
+
+	std::string text;
+	virtual int execute(Environment &e, const fdmask &fds) override final;
 };
 
 struct simple_command  : public command {
@@ -29,7 +42,17 @@ struct simple_command  : public command {
 
 	std::string text;
 
-	virtual int execute() final override;
+	virtual int execute(Environment &e, const fdmask &fds) final override;
+};
+
+struct evaluate_command  : public command {
+	template<class S>
+	evaluate_command(S &&s) : command(EVALUATE), text(std::forward<S>(s))
+	{}
+
+	std::string text;
+
+	virtual int execute(Environment &e, const fdmask &fds) final override;
 };
 
 struct binary_command : public command {
@@ -47,7 +70,7 @@ struct or_command : public binary_command {
 		binary_command(PIPE_PIPE, std::move(a), std::move(b)) 
 	{}
 
-	virtual int execute() final override;
+	virtual int execute(Environment &e, const fdmask &fds) final override;
 };
 
 struct and_command : public binary_command {
@@ -55,7 +78,7 @@ struct and_command : public binary_command {
 		binary_command(AMP_AMP, std::move(a), std::move(b)) 
 	{}
 
-	virtual int execute() final override;
+	virtual int execute(Environment &e, const fdmask &fds) final override;
 };
 
 
@@ -65,7 +88,7 @@ struct pipe_command : public binary_command {
 		binary_command(PIPE, std::move(a), std::move(b)) 
 	{}
 
-	virtual int execute() final override;
+	virtual int execute(Environment &e) final override;
 };
 #endif
 
@@ -75,18 +98,19 @@ struct vector_command : public command {
 	{}
 
 	command_ptr_vector children;
-	virtual int execute() override;
+	virtual int execute(Environment &e, const fdmask &fds) override;
 };
 
 struct begin_command : public vector_command {
-	template<class S>
-	begin_command(int t, command_ptr_vector &&v, S &&s) :
-		vector_command(t, std::move(v)), end(std::forward<S>(s))
+	template<class S1, class S2>
+	begin_command(int t, command_ptr_vector &&v, S1 &&b, S2 &&e) :
+		vector_command(t, std::move(v)), begin(std::forward<S1>(b)), end(std::forward<S2>(e))
 	{}
 
+	std::string begin;
 	std::string end; 
 
-	virtual int execute() final override;
+	virtual int execute(Environment &e, const fdmask &fds) final override;
 };
 
 typedef std::unique_ptr<struct if_else_clause> if_else_clause_ptr;
@@ -103,7 +127,7 @@ struct if_command : public command {
 	clause_vector_type clauses;
 	std::string end;
 
-	virtual int execute() final override;
+	virtual int execute(Environment &e, const fdmask &fds) final override;
 };
 
 struct if_else_clause : public vector_command {
@@ -115,8 +139,7 @@ struct if_else_clause : public vector_command {
 
 	std::string clause;
 
-	bool evaluate();
-	//virtual int execute() final override;
+	bool evaluate(const Environment &e);
 };
 
 #endif

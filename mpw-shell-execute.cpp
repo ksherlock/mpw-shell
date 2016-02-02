@@ -20,6 +20,7 @@
  *
  *   Echo {Echo}             # control the echoing of commands to diagnostic output
  *   Echo {Exit}             # control script termination based on {Status}
+ *   Echo {Test}             # don't actually run anything.
  *
  */
 
