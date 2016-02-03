@@ -134,10 +134,52 @@ int interactive(phase1 &p) {
 	return 0;
 }
 
+void help() {
+
+}
+void define(Environment &env, const std::string &s) {
+
+	auto pos = s.find('=');
+	if (pos == s.npos) env.set(s, "1");
+	else {
+		std::string k = s.substr(0, pos);
+		std::string v = s.substr(pos+1);
+		env.set(k, v);
+	}
+
+}
+
 int main(int argc, char **argv) {
 	
 	Environment e;
 	init(e);
+
+	int c;
+	while ((c = getopt(argc, argv, "D:v:h")) != -1) {
+		switch (c) {
+			case 'D':
+				// -Dname or -Dname=value
+				define(e, optarg);
+				break;
+			case 'v':
+				// -v verbose
+				e.set("echo", "1");
+				break;
+			case 'h':
+				help();
+				exit(0);
+
+			default:
+				help();
+				exit(EX_USAGE);
+		}
+	}
+
+
+
+
+
+
 
 	phase1 p1;
 	phase2 p2;
