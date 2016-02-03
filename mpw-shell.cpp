@@ -22,11 +22,39 @@
 //#include <histedit.h>
 #include <editline/readline.h>
 
+#include <sys/types.h>
+#include <pwd.h>
+#include <sysexits.h>
+
+//#include <uuid/uuid.h>
+
+std::string root() {
+
+	static std::string root;
+
+	if (root.empty()) {
+		const char *cp = getenv("HOME");
+		if (!cp ||  !*cp) {
+			auto pw = getpwuid(getuid());
+			if (!pw) {
+				fprintf(stderr,"Unable to determine home directory\n.");
+				exit(EX_NOUSER);
+			}
+			cp = pw->pw_dir;
+		}
+		root = cp;
+		if (root.back() != '/') root.push_back('/');
+		root += "mpw/";
+	}
+	return root;
+}
 // should set {MPW}, {MPWVersion}, then execute {MPW}StartUp
-void init(Environment &e) {
-	e.set("status", std::string("0"));
-	e.set("exit", std::string("1")); // terminate script on error.
-	e.set("echo", std::string("1"));
+void init(Environment &env) {
+
+	env.set("mpw", root());
+	env.set("status", std::string("0"));
+	env.set("exit", std::string("1")); // terminate script on error.
+	env.set("echo", std::string("1"));
 }
 
 int read_file(phase1 &p, const std::string &file) {
