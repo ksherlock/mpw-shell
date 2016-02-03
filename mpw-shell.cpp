@@ -154,9 +154,15 @@ int main(int argc, char **argv) {
 	Environment e;
 	init(e);
 
+	const char *cflag = nullptr;
+
 	int c;
-	while ((c = getopt(argc, argv, "D:v:h")) != -1) {
+	while ((c = getopt(argc, argv, "c:D:v:h")) != -1) {
 		switch (c) {
+			case 'c':
+				// -c command
+				cflag = optarg;
+				break;
 			case 'D':
 				// -Dname or -Dname=value
 				define(e, optarg);
@@ -205,11 +211,19 @@ int main(int argc, char **argv) {
 		}
 	};
 
-	fprintf(stdout, "MPW Shell 0.0\n");
+	if (!cflag) fprintf(stdout, "MPW Shell 0.0\n");
 	e.startup(true);
 	read_file(p1, "/Users/kelvin/mpw/Startup");
 	//p2.finish();
 	e.startup(false);
+
+	if (cflag) {
+		std::string s(cflag);
+		s.push_back('\n');
+		p1.process(s.data(), s.data() + s.length(), true);
+		p2.finish();
+		exit(e.status());
+	}
 
 	if (isatty(STDIN_FILENO))
 		interactive(p1);
@@ -217,5 +231,5 @@ int main(int argc, char **argv) {
 		read_fd(p1, STDIN_FILENO);
 	p2.finish();
 
-	return 0;
+	exit(e.status());
 }
