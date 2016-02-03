@@ -22,18 +22,30 @@ T pop(std::vector<T> &v) {
 	return t;
 }
 
+/*
+### MPW Shell - Unable to open "nofile".
+# File not found (OS error -43)
+{status} = -4
+*/
+
+void open_error(const std::string &name) {
+
+	std::string error = "### MPW Shell - Unable to open ";
+	error.push_back('"');
+	error.append(name);
+	error.push_back('"');
+	error.push_back('.');
+	throw std::runtime_error(error);	
+}
+
 int open(const std::string &name, int flags) {
 
 	// dup2 does not copy the O_CLOEXEC flag so it's safe to use.
 
 	int fd = ::open(name.c_str(), flags | O_CLOEXEC, 0666);
 	if (fd < 0) {
-		std::string error = "### MPW Shell - Unable to open ";
-		error.push_back('"');
-		error.append(name);
-		error.push_back('"');
-		error.push_back('.');
-		throw std::runtime_error(error);
+		open_error(name);
+		return -1;
 	}
 	return fd;
 }
@@ -55,38 +67,89 @@ void parse_tokens(std::vector<token> &&tokens, process &p) {
 
 		t = pop(tokens);
 
+		int flags;
+		unsigned fd_bits;
+
 		switch (t.type) {
 
 			// >,  >>  -- redirect stdout.
 			case '>':
+				flags = O_WRONLY | O_CREAT | O_TRUNC;
+				fd_bits = 1 << 1;
+				goto redir;
+
 			case '>>':
-				{
-					int flags;
-					if (t.type == '>') flags = O_WRONLY | O_CREAT | O_TRUNC;
-					else flags = O_WRONLY | O_CREAT | O_APPEND;
+				flags = O_WRONLY | O_CREAT | O_APPEND;
+				fd_bits = 1 << 1;
+				goto redir;
 
-					if (tokens.empty()) {
-						throw std::runtime_error("### MPW Shell - Missing file name.");
-					}
-					token name = pop(tokens);
-					int fd = open(name.string, flags);
-					fds.set(1, fd);
-				}
-				break;
-
-				// < -- redirect stdin.
 			case '<':
-				{
-					int flags = O_RDONLY;
+				flags = O_RDONLY;
+				fd_bits = 1 << 0;
+				goto redir;
 
+			// ∑, ∑∑ - redirect stdout & stderr
+			case 0xb7: // ∑
+				flags = O_WRONLY | O_CREAT | O_TRUNC;
+				fd_bits = (1 << 1) + (1 << 2);
+				goto redir;
+
+			case 0xb7b7: // ∑∑
+				flags = O_WRONLY | O_CREAT | O_APPEND;
+				fd_bits = (1 << 1) + (1 << 2);
+				goto redir;
+
+			// ≥,  ≥≥  -- redirect stdout.
+			case 0xb3: // ≥
+				flags = O_WRONLY | O_CREAT | O_TRUNC;
+				fd_bits = 1 << 2;
+				goto redir;
+
+			case 0xb3b3: // ≥≥
+				flags = O_WRONLY | O_CREAT | O_APPEND;
+				fd_bits = 1 << 2;
+				goto redir;
+
+			redir:
+
+				{
 					if (tokens.empty()) {
 						throw std::runtime_error("### MPW Shell - Missing file name.");
 					}
 					token name = pop(tokens);
 					int fd = open(name.string, flags);
-					fds.set(0, fd);
+
+
+					// todo -- if multiple fd_bits (stdin+stderr, should dup the second fd?)
+					switch(fd_bits) {
+					case 1 << 0:
+						fds.set(0, fd);
+						break;
+					case 1 << 1:
+						fds.set(1, fd);
+						break;
+					case 1 << 2:
+						fds.set(2, fd);
+						break;
+
+					case (1 << 1) + (1 << 2):
+						{
+							int newfd = fcntl(fd, F_DUPFD_CLOEXEC);
+							if (newfd < 1) {
+								close(fd);
+								open_error(name);
+							}
+							fds.set(1, fd);
+							fds.set(2, newfd);
+							break;
+						}
+					default:
+						// ???
+						close(fd);
+					}
 				}
 				break;
+
 
 			default:
 				argv.emplace_back(std::move(t.string));
