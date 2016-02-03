@@ -17,6 +17,8 @@ public:
 	operator const std::string&() const { return value; }
 	operator std::string&() { return value; }
 
+	const char *c_str() const { return value.c_str(); }
+
 	EnvironmentEntry() = default;
 	EnvironmentEntry(const EnvironmentEntry &) = default;
 	EnvironmentEntry(EnvironmentEntry &&) = default;

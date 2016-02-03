@@ -67,7 +67,14 @@ namespace {
 
 		if (pid == 0) {
 
-			// also export environment...
+			// export environment...
+
+			for (const auto &kv : env) {
+				if (kv.second) { // exported
+					std::string name = "mpw$" + kv.first;
+					setenv(name.c_str(), kv.second.c_str(), 1);
+				}
+			}
 
 			// handle any indirection...
 			fds.dup();
