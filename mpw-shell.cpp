@@ -98,6 +98,11 @@ int read_fd(phase1 &p, int fd) {
 
 int interactive(phase1 &p) {
 
+	std::string history_file = root();
+	history_file += ".history";
+	read_history(history_file.c_str());
+
+
 	for(;;) {
 		char *cp = readline("# ");
 		if (!cp) break;
@@ -108,7 +113,7 @@ int interactive(phase1 &p) {
 		if (s.empty()) continue;
 
 		// don't add if same as previous entry.
-		HIST_ENTRY *he = current_history();
+		HIST_ENTRY *he = history_get(history_length);
 		if (he == nullptr || s != he->line)
 				add_history(s.c_str());
 
@@ -130,7 +135,9 @@ int interactive(phase1 &p) {
 		p.reset();
 	}
 
+	write_history(history_file.c_str());
 	fprintf(stdout, "\n");
+
 	return 0;
 }
 
