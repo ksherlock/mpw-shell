@@ -292,6 +292,12 @@ int begin_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 namespace {
 
 
+	/*
+	 * returns:
+	 * <0 -> error
+	 * 0 -> false
+	 * >0 -> true
+	 */
 
 	int evaluate(int type, const std::string &s, Environment &env) {
 
@@ -360,8 +366,9 @@ int if_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 		{
 			indent_helper indent(env);
 			int tmp = evaluate(c->type, s, env);
-			if (tmp < 0) { ok = true; rv = tmp; }
-			else rv = c->execute(env, newfds);
+			if (tmp < 0) { ok = true; rv = tmp; continue; }
+			if (tmp == 0) continue;
+			rv = c->execute(env, newfds);
 		}
 	}
 
