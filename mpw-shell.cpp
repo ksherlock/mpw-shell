@@ -60,8 +60,8 @@ void init(Environment &env) {
 int read_file(phase1 &p, const std::string &file) {
 	const mapped_file mf(file, mapped_file::readonly);
 
-	p.process(mf.begin(), mf.end(), true);
-
+	p.process(mf.begin(), mf.end(), false);
+	p.finish();
 	return 0;
 }
 
@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
 	if (cflag) {
 		std::string s(cflag);
 		s.push_back('\n');
-		p1.process(s.data(), s.data() + s.length(), true);
+		p1.process(s, true);
 		p2.finish();
 		exit(e.status());
 	}

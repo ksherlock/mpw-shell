@@ -18,9 +18,9 @@ public:
 		process((const unsigned char *)begin, (const unsigned char *)end, final);
 	}
 
-	void process(const std::string &s) { process(s.data(), s.data() + s.size()); }
+	void process(const std::string &s, bool final = false) { process(s.data(), s.data() + s.size(), final); }
 
-	void finish() { const char *tmp = ""; process(tmp, tmp, true); }
+	void finish() { const char *tmp = "\n"; process(tmp, tmp+1, true); }
 
 	void reset();
 
