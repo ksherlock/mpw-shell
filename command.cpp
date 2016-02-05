@@ -196,7 +196,7 @@ int and_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 	int rv = 0;
 	for (auto &c : children) {
 		if (!c) continue;
-		c->execute(e, fds, false);
+		rv = c->execute(e, fds, false);
 		if (rv != 0) return rv;
 	}
 
@@ -208,9 +208,8 @@ int vector_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 
 	int rv = 0;
 	for (auto &c : children) {
-
+		if (!c) continue;
 		rv = c->execute(e, fds);
-		if (e.exit()) break;
 	}
 	return e.status(rv);
 }
