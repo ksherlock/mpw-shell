@@ -15,4 +15,5 @@ before_install:
   - brew update
   - brew install ragel
   - brew install cmake
+  - brew install "https://github.com/ksherlock/lemon--/raw/master/lemon%2B%2B.rb"
 
