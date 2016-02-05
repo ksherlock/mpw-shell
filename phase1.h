@@ -35,6 +35,7 @@ public:
 		return *this;
 	}
 
+	void abort() { reset(); }
 
 
 private:

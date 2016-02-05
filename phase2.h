@@ -23,6 +23,7 @@ public:
 	virtual void parse_failure() override final;
 
 	bool continuation() const;
+
 private:
 	friend class phase2;
 
@@ -69,7 +70,9 @@ public:
 	bool continuation() const {
 		return parser ? parser->continuation() : false;
 	}
-	
+
+	void abort();
+
 private:
 
 	void parse(int, std::string &&);

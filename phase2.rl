@@ -252,9 +252,14 @@ void phase2::exec() {
 }
 
 phase2::phase2() {
-	parser = std::move(phase2_parser::make());
+	parser = phase2_parser::make();
 	//parser->trace(stdout, " ] ");
 
+}
+
+void phase2::abort() {
+	parser = nullptr;
+	parser = phase2_parser::make();
 }
 
 #pragma mark - phase2_parser
@@ -293,3 +298,4 @@ void phase2_parser::syntax_error(int yymajor, std::string &yyminor) {
 	fprintf(stderr, "### MPW Shell - Parse error near %s\n", yymajor ? yyminor.c_str() : "EOF");
 	error = true;
 }
+
