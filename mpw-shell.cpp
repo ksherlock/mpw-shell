@@ -108,7 +108,7 @@ void control_c_handler(int signal, siginfo_t *sinfo, void *context) {
 	//fprintf(stderr, "interrupt!\n");
 }
 
-int interactive(phase1 &p, phase2& p2) {
+int interactive(Environment &env, phase1 &p, phase2& p2) {
 
 	std::string history_file = root();
 	history_file += ".history";
@@ -135,7 +135,7 @@ int interactive(phase1 &p, phase2& p2) {
 				fprintf(stdout, "\n");
 				p.abort();
 				p2.abort();
-				e.status(-9, false);
+				env.status(-9, false);
 				continue;
 			}
 			break;
@@ -272,7 +272,7 @@ int main(int argc, char **argv) {
 	}
 
 	if (isatty(STDIN_FILENO))
-		interactive(p1, p2);
+		interactive(e, p1, p2);
 	else 
 		read_fd(p1, STDIN_FILENO);
 	p2.finish();
