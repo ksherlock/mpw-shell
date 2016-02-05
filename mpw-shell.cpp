@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <cerrno>
+#include <signal.h>
 
 #include "mpw-shell.h"
 #include "fdset.h"
@@ -57,6 +58,7 @@ void init(Environment &env) {
 	env.set("echo", std::string("1"));
 }
 
+
 int read_file(phase1 &p, const std::string &file) {
 	const mapped_file mf(file, mapped_file::readonly);
 
@@ -96,6 +98,16 @@ int read_fd(phase1 &p, int fd) {
 	return 0;
 }
 
+volatile int control_c = 0;
+void control_c_handler(int signal, siginfo_t *sinfo, void *context) {
+
+	// libedit gobbles up the first control-C and doesn't return until the second.
+	// GNU's readline may return no the first.
+	if (control_c > 3) abort();
+	control_c++;
+	//fprintf(stderr, "interrupt!\n");
+}
+
 int interactive(phase1 &p, phase2& p2) {
 
 	std::string history_file = root();
@@ -103,12 +115,32 @@ int interactive(phase1 &p, phase2& p2) {
 	read_history(history_file.c_str());
 
 
+	struct sigaction act;
+	struct sigaction old_act;
+	memset(&act, 0, sizeof(struct sigaction));
+	sigemptyset(&act.sa_mask);
+
+	act.sa_sigaction = control_c_handler;
+	act.sa_flags = SA_SIGINFO;
+
+	sigaction(SIGINT, &act, &old_act);
+
 	for(;;) {
 		const char *prompt = "# ";
 		if (p2.continuation()) prompt = "> ";
 		char *cp = readline(prompt);
-		if (!cp) break;
-
+		if (!cp) {
+			if (control_c) {
+				control_c = 0;
+				fprintf(stdout, "\n");
+				p.abort();
+				p2.abort();
+				e.status(-9, false);
+				continue;
+			}
+			break;
+		}
+		control_c = 0;
 		std::string s(cp);
 		free(cp);
 
@@ -137,8 +169,11 @@ int interactive(phase1 &p, phase2& p2) {
 		p.reset();
 	}
 
+	sigaction(SIGINT, &old_act, nullptr);
+
 	write_history(history_file.c_str());
 	fprintf(stdout, "\n");
+
 
 	return 0;
 }
@@ -212,9 +247,11 @@ int main(int argc, char **argv) {
 			try {
 				ptr->execute(e, fds);
 			} catch (execution_of_input_terminated &ex) {
+				control_c = 0;
 				if (!(ptr->terminal() && ++iter == v.end())) {
 					fprintf(stderr, "%s\n", ex.what());
 				}
+				e.status(ex.status(), false);
 				return;
 			}
 		}

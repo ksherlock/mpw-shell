@@ -4,6 +4,7 @@
 #include "fdset.h"
 #include "builtins.h"
 #include "mpw-shell.h"
+#include "error.h"
 
 #include <stdexcept>
 #include <unordered_map>
@@ -15,6 +16,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sysexits.h>
+
+extern volatile int control_c;
 
 namespace {
 
@@ -121,6 +124,9 @@ command::~command()
  */
 
 int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
+
+	if (control_c) throw execution_of_input_terminated();
+
 	std::string s = expand_vars(text, env);
 
 	env.echo("%s", s.c_str()); 
@@ -159,6 +165,8 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 }
 
 int evaluate_command::execute(Environment &env, const fdmask &fds, bool throwup) {
+
+	if (control_c) throw execution_of_input_terminated();
 
 	std::string s = expand_vars(text, env);
 
@@ -215,6 +223,9 @@ int vector_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 }
 
 int error_command::execute(Environment &e, const fdmask &fds, bool throwup) {
+
+	if (control_c) throw execution_of_input_terminated();
+
 	std::string s = expand_vars(text, e);
 
 	e.echo("%s", s.c_str());

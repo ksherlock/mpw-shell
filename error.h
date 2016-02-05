@@ -6,7 +6,7 @@
 
 class execution_of_input_terminated : public std::runtime_error {
 public:
-	execution_of_input_terminated(int status) : 
+	execution_of_input_terminated(int status = -9) : 
 	std::runtime_error("MPW Shell - Execution of input Terminated."), _status(status)
 	{}
 	constexpr int status() const noexcept { return _status; }
