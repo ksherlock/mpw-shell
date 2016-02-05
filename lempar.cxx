@@ -335,6 +335,8 @@ class yypParser : public LEMON_SUPER {
     }
     #endif
 
+    const yyStackEntry *begin() const { return &yystack[0]; }
+    const yyStackEntry *end() const { return &yystack[yyidx > 0 ? yyidx + 1: 0]; }
 
   protected:
   private:

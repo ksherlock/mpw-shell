@@ -96,7 +96,7 @@ int read_fd(phase1 &p, int fd) {
 	return 0;
 }
 
-int interactive(phase1 &p) {
+int interactive(phase1 &p, phase2& p2) {
 
 	std::string history_file = root();
 	history_file += ".history";
@@ -104,7 +104,9 @@ int interactive(phase1 &p) {
 
 
 	for(;;) {
-		char *cp = readline("# ");
+		const char *prompt = "# ";
+		if (p2.continuation()) prompt = "> ";
+		char *cp = readline(prompt);
 		if (!cp) break;
 
 		std::string s(cp);
@@ -233,7 +235,7 @@ int main(int argc, char **argv) {
 	}
 
 	if (isatty(STDIN_FILENO))
-		interactive(p1);
+		interactive(p1, p2);
 	else 
 		read_fd(p1, STDIN_FILENO);
 	p2.finish();

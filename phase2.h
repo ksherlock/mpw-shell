@@ -22,6 +22,7 @@ public:
 	virtual void parse_accept() override final;
 	virtual void parse_failure() override final;
 
+	bool continuation() const;
 private:
 	friend class phase2;
 
@@ -65,6 +66,10 @@ public:
 		return *this;
 	}
 
+	bool continuation() const {
+		return parser ? parser->continuation() : false;
+	}
+	
 private:
 
 	void parse(int, std::string &&);

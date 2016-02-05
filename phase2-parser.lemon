@@ -9,7 +9,7 @@
 #include "phase2.h"
 #include "command.h"
 #define LEMON_SUPER phase2_parser
-
+#include "phase2-parser.h"
 }
 
 %code {
@@ -17,6 +17,20 @@
 std::unique_ptr<phase2_parser> phase2_parser::make() {
 	return std::make_unique<yypParser>();
 }
+
+bool phase2_parser::continuation() const {
+	yypParser *self = (yypParser *)this;
+
+	for (const auto &e : *self) {
+		if (e.major == BEGIN) return true;
+		if (e.major == LPAREN) return true;
+		if (e.major == IF) return true;
+		if (e.major == AMP_AMP) return true;
+		if (e.major == PIPE_PIPE) return true;
+	}
+	return false;
+}
+
 }
 
 %left PIPE_PIPE AMP_AMP.
