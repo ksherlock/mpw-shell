@@ -266,8 +266,32 @@ std::string basename(const char *cp) {
 
 }
 
-void make_help() {
+void make_help(void) {
 
+	#undef _
+	#define _(x) puts(x)
+
+	_("Make                       # build up-to-date version of a program");
+	_("Make [option...] [target...]");
+	_("    -d name[=value]         # define variable name (overrides makefile definition)");
+	_("    -e                      # rebuild everything regardless of dates");
+	_("    -f filename             # read dependencies from specified file (default: MakeFile)");
+	_("    -i dirname              # additional directory to search for include files");
+#if 0
+	_("    -[no]mf                 # [don't] use temporary memory (default: mf)");
+#endif
+	_("    -p                      # write progress information to diagnostics");
+	_("    -r                      # display the roots of the dependency graph");
+	_("    -s                      # display the structure of the dependency graph");
+	_("    -t                      # touch dates of targets and prerequisites");
+	_("    -u                      # write list of unreachable targets to diagnostics");
+	_("    -v                      # write verbose explanations to diagnostics (implies -p)");
+	_("    -w                      # suppress warning messages");
+	_("    -y                      # like -v, but omit announcing up-to-date targets");
+	_("");
+	_("    --help                  # display help");
+	_("    --dry-run, --test       # show what commands would run");
+#undef _
 }
 
 int make(int argc, char **argv) {
