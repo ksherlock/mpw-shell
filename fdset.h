@@ -25,6 +25,9 @@ class fdmask {
 	fdmask(const std::array<int, 3> &rhs) : _fds(rhs)
 	{}
 
+	fdmask(int a, int b, int c) : _fds{{ a, b, c }}
+	{} 
+
 #if 0
 	fdmask(std::initializer_list<int> rhs) : _fds(rhs)
 	{}

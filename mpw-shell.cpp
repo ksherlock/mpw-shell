@@ -98,6 +98,71 @@ int read_fd(phase1 &p, int fd) {
 	return 0;
 }
 
+void launch_mpw(const Environment &env, const std::vector<std::string> &argv, const fdmask &fds);
+
+int read_make(phase1 &p1, phase2 &p2, Environment &env, const std::vector<std::string> &argv) {
+
+	int out[2];
+	int ok;
+
+
+	env.set("echo", "1");
+	env.set("exit", "1");
+
+	ok = pipe(out);
+	if (ok < 0) {
+		perror("pipe");
+		exit(EX_OSERR);
+	}
+	fcntl(out[0], F_SETFD, FD_CLOEXEC);
+	fcntl(out[1], F_SETFD, FD_CLOEXEC);
+
+	int child = fork();
+	if (child < 0) {
+		perror("fork");
+		exit(EX_OSERR);
+	}
+	if (child == 0) {
+		// child.
+		fdmask fds = {-1, out[1], -1};
+
+		launch_mpw(env, argv, fds);
+
+		exit(EX_OSERR);
+	}
+
+	close(out[1]);
+	int rv = read_fd(p1, out[0]);
+	close(out[0]);
+	p2.finish();
+
+	// check for make errors.
+	for(;;) {
+		int status;
+		int ok = waitpid(child, &status, 0);
+		if (ok < 0) {
+			if (errno == EINTR) continue;
+			perror("waitpid: ");
+			exit(EX_OSERR);
+		}
+
+		if (WIFEXITED(status)) {
+			ok = WEXITSTATUS(status);
+			env.status(ok, false);
+			break;
+		}
+		if (WIFSIGNALED(status)) {
+			env.status(-9, false);
+			break;
+		}
+
+		fprintf(stderr, "waitpid - unexpected result\n");
+		exit(EX_OSERR);
+	}
+
+	return env.status();
+}
+
 volatile int control_c = 0;
 void control_c_handler(int signal, siginfo_t *sinfo, void *context) {
 
@@ -193,7 +258,83 @@ void define(Environment &env, const std::string &s) {
 
 }
 
+std::string basename(const char *cp) {
+	std::string tmp(cp);
+	auto pos = tmp.rfind('/');
+	if (pos == tmp.npos) return tmp;
+	return tmp.substr(pos+1);
+
+}
+
+void make_help() {
+
+}
+
+int make(int argc, char **argv) {
+
+	Environment e;
+	init(e);
+
+	std::vector<std::string> args;
+	args.reserve(argc+1);
+	bool __ = false;
+
+	args.emplace_back("make");
+
+	for (auto iter = argv; *iter; ++iter) {
+		std::string tmp(*iter);
+
+		if (!__) {
+			if (tmp == "--")
+				{ __ = true; continue; }
+
+			if (tmp == "--help")
+				{ make_help(); exit(0); }
+
+			if (tmp == "--test" || tmp == "--dry-run") 
+				{ e.set("test", "1"); continue; }
+		}
+		args.emplace_back(std::move(tmp));
+
+	}
+
+	phase1 p1;
+	phase2 p2;
+
+	p1 >>= [&p2](std::string &&s) {
+		if (s.empty()) p2.finish();
+		else p2(std::move(s));
+	};
+
+	p2 >>= [&e](command_ptr_vector &&v) {
+
+		for (auto iter = v.begin(); iter != v.end(); ++iter) {
+			auto &ptr = *iter;
+			fdmask fds;
+			try {
+				ptr->execute(e, fds);
+			} catch (execution_of_input_terminated &ex) {
+				control_c = 0;
+				if (!(ptr->terminal() && ++iter == v.end())) {
+					fprintf(stderr, "%s\n", ex.what());
+				}
+				e.status(ex.status(), false);
+				return;
+			}
+		}
+	};
+
+
+	return read_make(p1, p2, e, args);
+
+}
+
 int main(int argc, char **argv) {
+
+
+	std::string self = basename(argv[0]);
+	if (self == "mpw-make") return make(argc - 1, argv + 1);
+	if (self == "mpw-shell" && argc > 1 && !strcmp(argv[1],"make")) return make(argc - 2, argv + 2);
 	
 	Environment e;
 	init(e);

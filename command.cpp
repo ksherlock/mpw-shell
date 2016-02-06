@@ -19,6 +19,42 @@
 
 extern volatile int control_c;
 
+
+void launch_mpw(const Environment &env, const std::vector<std::string> &argv, const fdmask &fds) {
+
+	std::vector<char *> cargv;
+	cargv.reserve(argv.size() + 3);
+
+
+	cargv.push_back((char *)"mpw");
+	//cargv.push_back((char *)"--shell");
+
+	unsigned offset = cargv.size();		
+
+
+	std::transform(argv.begin(), argv.end(), std::back_inserter(cargv),
+		[](const std::string &s) { return strdup(s.c_str()); }
+	);
+	cargv.push_back(nullptr);
+
+
+		// export environment...
+
+		for (const auto &kv : env) {
+			if (kv.second) { // exported
+				std::string name = "mpw$" + kv.first;
+				setenv(name.c_str(), kv.second.c_str(), 1);
+			}
+		}
+
+		// handle any indirection...
+		fds.dup();
+
+		execvp(cargv.front(), cargv.data());
+		perror("execvp: ");
+		exit(EX_OSERR); // raise a signal?
+}
+
 namespace {
 
 	std::string &lowercase(std::string &s) {
@@ -40,25 +76,14 @@ namespace {
 
 
 
+
+
 	int execute_external(const Environment &env, const std::vector<std::string> &argv, const fdmask &fds) {
 
-		std::vector<char *> cargv;
-		cargv.reserve(argv.size() + 3);
+
 
 		int status;
 		int pid;
-
-		cargv.push_back((char *)"mpw");
-		//cargv.push_back((char *)"--shell");
-
-		unsigned offset = cargv.size();
-
-
-		std::transform(argv.begin(), argv.end(), std::back_inserter(cargv),
-			[](const std::string &s) { return strdup(s.c_str()); }
-		);
-
-		cargv.push_back(nullptr);
 
 
 		pid = fork();
@@ -69,25 +94,8 @@ namespace {
 
 
 		if (pid == 0) {
-
-			// export environment...
-
-			for (const auto &kv : env) {
-				if (kv.second) { // exported
-					std::string name = "mpw$" + kv.first;
-					setenv(name.c_str(), kv.second.c_str(), 1);
-				}
-			}
-
-			// handle any indirection...
-			fds.dup();
-
-			execvp(cargv.front(), cargv.data());
-			perror("execvp: ");
-			exit(EX_OSERR);
+			launch_mpw(env, argv, fds);
 		}
-
-		std::for_each(cargv.begin()+offset, cargv.end(), free);
 
 		for(;;) {
 			int status;
