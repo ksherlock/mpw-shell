@@ -133,7 +133,7 @@ add_custom_command(
 # install...
 
 install(
-  FILES
+  PROGRAMS
     ${CMAKE_CURRENT_BINARY_DIR}/mpw-shell
     ${CMAKE_CURRENT_BINARY_DIR}/mpw-make
   DESTINATION bin
