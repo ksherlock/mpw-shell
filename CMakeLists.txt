@@ -1,4 +1,6 @@
 
+# CMAKE_INSTALL_PREFIX defaults to /usr/local.
+
 cmake_minimum_required(VERSION 2.6)
 project("mpw-shell")
 set (PROJECT_TYPE "CXX")
@@ -119,3 +121,20 @@ target_link_libraries(mpw-shell edit)
 set_property (TARGET mpw-shell PROPERTY CXX_STANDARD 14)
 set_property (TARGET mpw-shell PROPERTY CXX_STANDARD_REQUIRED TRUE)
 set_property (TARGET mpw-shell PROPERTY CXX_EXTENSIONS FALSE)
+
+# create a symlink for mpw-make
+add_custom_command(
+  TARGET mpw-shell
+  POST_BUILD
+  COMMAND ln;-sf;mpw-shell;mpw-make
+  COMMENT "ln -s mpw-shell mpw-make"
+)
+
+# install...
+
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/mpw-shell
+    ${CMAKE_CURRENT_BINARY_DIR}/mpw-make
+  DESTINATION bin
+)
