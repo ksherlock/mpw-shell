@@ -6,7 +6,7 @@ project("mpw-shell")
 set (PROJECT_TYPE "CXX")
 set (PROJECT_NAME "MPW Shell")
 
-set(CMAKE_CXX_FLAGS "-g -Wall -Wno-unused-variable -Wno-multichar")
+set(CMAKE_CXX_FLAGS "-g -Wall -Wno-unused-variable -Wno-multichar -O1")
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable ")
@@ -66,6 +66,7 @@ endmacro()
 RAGEL_TARGET(mpw-shell-read mpw-shell-read.rl mpw-shell-read.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(phase1 phase1.rl phase1.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(phase2 phase2.rl phase2.cpp COMPILE_FLAGS "-p -G2")
+RAGEL_TARGET(pathnames pathnames.rl pathnames.cpp COMPILE_FLAGS "-p -G2")
 
 # need to copy all OUTPUT file to the build dir
 add_custom_command(
@@ -113,7 +114,8 @@ add_custom_command(
 # mpw-shell-execute.cpp mpw-shell-builtins.cpp mpw-shell-read.cpp
 add_executable(mpw-shell mpw-shell.cpp  mpw-shell-token.cpp mpw-shell-expand.cpp 
 	mpw-shell-parser.cpp value.cpp mpw-shell-quote.cpp 
-	phase1.cpp phase2.cpp phase2-parser.cpp command.cpp environment.cpp builtins.cpp mapped_file.cpp)
+	phase1.cpp phase2.cpp phase2-parser.cpp command.cpp environment.cpp builtins.cpp mapped_file.cpp
+	pathnames.cpp)
 
 target_link_libraries(mpw-shell edit)
 

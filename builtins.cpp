@@ -15,6 +15,12 @@
 //MAXPATHLEN
 #include <sys/param.h>
 
+
+namespace ToolBox {
+	std::string MacToUnix(const std::string path);
+	std::string UnixToMac(const std::string path);
+}
+
 namespace {
 
 /*
@@ -45,6 +51,7 @@ namespace {
 	}
 
 }
+
 
 #undef stdin
 #undef stdout
@@ -330,7 +337,8 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 		}
 
 		// todo -- pathname translation.
-		int ok = chdir(argv.front().c_str());
+		std::string path = ToolBox::MacToUnix(argv.front());
+		int ok = chdir(path.c_str());
 		if (ok < 0) {
 			fputs("### Directory - Unable to set current directory.\n", stderr);
 			perror("chdir: ");
