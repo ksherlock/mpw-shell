@@ -298,6 +298,38 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 	// for relative names, uses {DirectoryPath} (if set) rather than .
 	// set DirectoryPath ":,{MPW},{MPW}Projects:"
 
+	/*
+	 * Parameters:
+	 * ----------
+	 * directory
+	 * Sets the default directory to directory. If you specify directory
+	 * as a leafname (that is, the final portion of a full pathname), the
+	 * MPW Shell searches for the directory in the current directory path
+	 * (for example, searching "{MPW}Examples:" for CExamples). However, if
+	 * the MPW Shell fails to find the directory in the current directory
+	 * path, it searches the directories listed in the {DirectoryPath} MPW
+	 * Shell variable, which contains a list of directories to be searched
+	 * in order of precedence. The last example illustrates how to do this.
+	 *
+	 * Options:
+	 * -------
+	 * -q
+	 * Inhibits quoting the directory pathname written to standard
+	 * output. This option applies only if you omit the directory
+	 * parameter Normally the MPW Shell quotes the current default
+	 * directory name if it contains spaces or other special characters
+	 *
+	 * Status:
+	 * ------
+	 * Directory can return the following status codes:
+	 *
+	 * 0 no errors
+	 * 1 directory not found; command aborted; or parameter error
+	 *
+	 */
+
+
+
 	//io_helper io(fds);
 
 	bool q = false;
