@@ -17,7 +17,7 @@
 #include "phase2.h"
 #include "command.h"
 
-#include "mapped_file.h"
+#include "cxx/mapped_file.h"
 #include "error.h"
 
 //#include <histedit.h>

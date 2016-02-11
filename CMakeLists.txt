@@ -114,8 +114,13 @@ add_custom_command(
 # mpw-shell-execute.cpp mpw-shell-builtins.cpp mpw-shell-read.cpp
 add_executable(mpw-shell mpw-shell.cpp  mpw-shell-token.cpp mpw-shell-expand.cpp 
 	mpw-shell-parser.cpp value.cpp mpw-shell-quote.cpp 
-	phase1.cpp phase2.cpp phase2-parser.cpp command.cpp environment.cpp builtins.cpp mapped_file.cpp
-	pathnames.cpp)
+	phase1.cpp phase2.cpp phase2-parser.cpp command.cpp environment.cpp builtins.cpp 
+	pathnames.cpp
+	cxx/mapped_file.cpp
+	cxx/filesystem.cpp
+	cxx/path.cpp
+	cxx/directory_iterator.cpp
+)
 
 target_link_libraries(mpw-shell edit)
 
