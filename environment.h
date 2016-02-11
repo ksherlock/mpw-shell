@@ -91,6 +91,13 @@ public:
 
 	void echo(const char *format, ...);
 
+	template<class FX>
+	void indent_and(FX &&fx) {
+		int i = _indent++;
+		try { fx(); _indent = i; }
+		catch (...) { _indent = i; throw; } 
+	}
+
 private:
 	// magic variables.
 
@@ -111,6 +118,7 @@ private:
 	std::unordered_map<std::string, EnvironmentEntry> _table;
 };
 
+/*
 class indent_helper {
 public:
 	indent_helper(Environment &e) : env(e) { env._indent++; }
@@ -120,6 +128,6 @@ private:
 	Environment &env;
 	bool active = true;
 };
-
+*/
 
 #endif

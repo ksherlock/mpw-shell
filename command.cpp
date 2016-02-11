@@ -304,10 +304,9 @@ int begin_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 	if (status) return env.status(status);
 
 	int rv;
-	{
-		indent_helper indent(env);
-		rv = vector_command::execute(env, newfds);
-	}
+	env.indent_and([&]{
+		rv = vector_command::execute(env, newfds);		
+	});
 
 	env.echo("%s", type == BEGIN ? "end" : ")");
 
@@ -388,13 +387,14 @@ int if_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 			env.echo("%s", s.c_str());
 
 		if (ok) continue;
-		{
-			indent_helper indent(env);
-			int tmp = evaluate(c->type, s, env);
-			if (tmp < 0) { ok = true; rv = tmp; continue; }
-			if (tmp == 0) continue;
+
+		int tmp = evaluate(c->type, s, env);
+		if (tmp < 0) { ok = true; rv = tmp; continue; }
+		if (tmp == 0) continue;
+
+		env.indent_and([&](){
 			rv = c->execute(env, newfds);
-		}
+		});
 	}
 
 	env.echo("end");
