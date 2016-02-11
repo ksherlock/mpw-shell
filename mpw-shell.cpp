@@ -18,20 +18,23 @@
 #include "command.h"
 
 #include "cxx/mapped_file.h"
+#include "cxx/filesystem.h"
+#include "cxx/string_splitter.h"
+
 #include "error.h"
 
-//#include <histedit.h>
 #include <editline/readline.h>
 
 #include <sys/types.h>
 #include <pwd.h>
 #include <sysexits.h>
 
-//#include <uuid/uuid.h>
+namespace fs = filesystem;
 
-std::string root() {
 
-	static std::string root;
+fs::path root() {
+
+	static fs::path root;
 
 	if (root.empty()) {
 		const char *cp = getenv("HOME");
@@ -44,8 +47,9 @@ std::string root() {
 			cp = pw->pw_dir;
 		}
 		root = cp;
-		if (root.back() != '/') root.push_back('/');
-		root += "mpw/";
+		//if (root.back() != '/') root.push_back('/');
+		//root += "mpw/";
+		root /= "mpw/";
 	}
 	return root;
 }
@@ -350,7 +354,7 @@ int make(int argc, char **argv) {
 
 
 	e.startup(true);
-	read_file(p1, root() + "Startup");
+	read_file(p1, root() / "Startup");
 	e.startup(false);
 
 
@@ -358,8 +362,53 @@ int make(int argc, char **argv) {
 
 }
 
+fs::path mpw_path() {
+
+	static fs::path path;
+
+	if (path.empty()) {
+		std::error_code ec;
+
+		std::string s(getenv("PATH"));
+		string_splitter ss(s, ':');
+		for (; ss; ++ss) {
+			if (ss->empty()) continue;
+			fs::path p(*ss);
+			p /= "mpw";
+
+			if (fs::is_regular_file(p, ec)) {
+				path = std::move(p);
+				break;
+			}
+		}
+		//also check /usr/local/bin
+		if (path.empty()) {
+			fs::path p = "/usr/local/bin/mpw";
+			if (fs::is_regular_file(p, ec)) {
+				path = std::move(p);
+			}
+		}
+
+		if (path.empty()) {
+			fs::path p = root() / "bin/mpw";
+			if (fs::is_regular_file(p, ec)) {
+				path = std::move(p);
+			}
+		}
+
+		if (path.empty()) {
+			fprintf(stderr, "Unable to find mpw executable\n");
+			fprintf(stderr, "PATH = %s\n", s.c_str());
+			path = "mpw";
+		}
+	}
+
+	return path;
+}
+
 int main(int argc, char **argv) {
 
+	mpw_path();
 
 	std::string self = basename(argv[0]);
 	if (self == "mpw-make") return make(argc - 1, argv + 1);
@@ -429,7 +478,7 @@ int main(int argc, char **argv) {
 
 	if (!cflag) fprintf(stdout, "MPW Shell 0.0\n");
 	e.startup(true);
-	read_file(p1, root() + "Startup");
+	read_file(p1, root() / "Startup");
 	e.startup(false);
 
 	if (cflag) {
