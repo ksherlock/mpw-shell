@@ -349,6 +349,11 @@ int make(int argc, char **argv) {
 	};
 
 
+	e.startup(true);
+	read_file(p1, root() + "Startup");
+	e.startup(false);
+
+
 	return read_make(p1, p2, e, args);
 
 }
@@ -424,8 +429,7 @@ int main(int argc, char **argv) {
 
 	if (!cflag) fprintf(stdout, "MPW Shell 0.0\n");
 	e.startup(true);
-	read_file(p1, "/Users/kelvin/mpw/Startup");
-	//p2.finish();
+	read_file(p1, root() + "Startup");
 	e.startup(false);
 
 	if (cflag) {
