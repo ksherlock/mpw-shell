@@ -72,6 +72,7 @@ const unsigned char escape = 0xb6;
 		}
 	;
 
+	# todo -- {{variables}}
 	# same quoting logic as ' string
 	vstring = 
 		'{' $push_back
@@ -99,17 +100,13 @@ const unsigned char escape = 0xb6;
 		}
 	;
 
-	# this is a mess ...
+	# gobble up all the white space...
 	coalesce_ws =
-		ws
-		(
-			ws
-			|
-			escape nl ${ line++; }
-		)*
+		ws+
 		<:
-		any ${ scratch.push_back(' '); fhold; }
-	;
+		''
+		%{ if (!scratch.empty() && scratch.back() != ' ') scratch.push_back(' '); }
+		;
 
 	line :=
 	(
