@@ -336,7 +336,7 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 			return 1;
 		}
 
-		// todo -- pathname translation.
+		// todo -- if relative path does not exist, check {DirectoryPath}
 		std::string path = ToolBox::MacToUnix(argv.front());
 		int ok = chdir(path.c_str());
 		if (ok < 0) {
@@ -351,7 +351,7 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 		char *cp = getcwd(buffer, sizeof(buffer));
 		if (!cp) {
 			perror("getcwd: ");
-			return -1;
+			return 1;
 		}
 		// todo -- pathname translation?
 
