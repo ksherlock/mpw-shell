@@ -12,6 +12,8 @@
 #include <cerrno>
 #include <cstdlib>
 
+#include "cxx/filesystem.h"
+#include "cxx/string_splitter.h"
 
 #include <unistd.h>
 #include <sys/wait.h>
@@ -19,6 +21,34 @@
 
 extern volatile int control_c;
 
+namespace fs = filesystem;
+extern fs::path mpw_path();
+
+namespace ToolBox {
+	std::string MacToUnix(const std::string path);
+	std::string UnixToMac(const std::string path);
+}
+
+fs::path which(const Environment &env, const std::string &name) {
+	std::error_code ec;
+
+	if (name.find_first_of("/:") != name.npos) {
+		// canonical?
+		fs::path p(name);
+		if (fs::exists(p, ec)) return name;
+		return "";
+	}
+
+	std::string s = env.get("commands");
+	for (string_splitter ss(s, ','); ss; ++ss) {
+		fs::path p(ToolBox::MacToUnix(*ss));
+		p /= name;
+		if (fs::exists(p, ec)) return p;
+	}
+
+	// error..
+	return "";
+}
 
 void launch_mpw(const Environment &env, const std::vector<std::string> &argv, const fdmask &fds) {
 

@@ -16,6 +16,7 @@ int builtin_set(Environment &e, const std::vector<std::string> &, const fdmask &
 int builtin_unset(Environment &e, const std::vector<std::string> &, const fdmask &);
 int builtin_export(Environment &e, const std::vector<std::string> &, const fdmask &);
 int builtin_unexport(Environment &e, const std::vector<std::string> &, const fdmask &);
+int builtin_which(Environment &e, const std::vector<std::string> &, const fdmask &);
 
 int builtin_evaluate(Environment &e, std::vector<token> &&, const fdmask &);
 

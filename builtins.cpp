@@ -12,6 +12,9 @@
 #include <cstdio>
 #include <cctype>
 
+#include "cxx/string_splitter.h"
+#include "cxx/filesystem.h"
+
 //MAXPATHLEN
 #include <sys/param.h>
 
@@ -20,6 +23,9 @@ namespace ToolBox {
 	std::string MacToUnix(const std::string path);
 	std::string UnixToMac(const std::string path);
 }
+
+
+namespace fs = filesystem;
 
 namespace {
 
