@@ -518,3 +518,87 @@ int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask
 	fprintf(stdout, "%d\n", i);
 	return 0;
 }
+
+int builtin_which(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
+
+	// which [-a] [-p] [command]
+	bool a = false;
+	bool p = false;
+	bool error = false;
+
+	std::vector<std::string> argv = getopt(tokens, [&](char c){
+		switch(c)
+		{
+			case 'a': case 'A': a = true; break;
+			case 'p': case 'P': p = true; break;
+
+			default:
+				fprintf(stderr, "### Which - \"-%c\" is not an option.\n", c);
+				error = true;
+				break;
+		}
+	});
+
+	if (argv.size() > 1) {
+		fprintf(stderr, "### Which - Too many parameters were specified.\n");
+		error = true;
+	}
+
+	if (error) {
+		fprintf(stderr, "# Usage - Which [-a] [-p] [name]\n");
+		return 1;
+	}
+
+	std::string s = env.get("commands");
+	string_splitter ss(s, ',');
+
+	if (argv.empty()) {
+		// just print the paths.
+		for (; ss; ++ss) {
+			fprintf(stdout, "%s\n", ss->c_str());
+		}
+		return 0;
+	}
+	std::string target = argv[0];
+	
+
+	bool found = false;
+
+	// if absolute or relative path, check that.
+	if (target.find_first_of("/:") != target.npos) {
+
+		std::error_code ec;
+		fs::path p(ToolBox::MacToUnix(target));
+
+		if (fs::exists(p, ec)) {
+			fprintf(stdout, "%s\n", quote(p).c_str());
+			return 0;
+		}
+		else {
+			fprintf(stderr, "### Which - File \"%s\" not found.\n", target.c_str());
+			return 2;
+		}
+	}
+	
+	for(; ss; ++ss) {
+		if (p) fprintf(stderr, "checking %s\n", ss->c_str());
+
+		std::error_code ec;
+		fs::path p(ToolBox::MacToUnix(ss->c_str()));
+
+		p /= target;
+		if (fs::exists(p, ec)) {
+			found = true;
+			fprintf(stdout, "%s\n", quote(p).c_str());
+			if (!a) break;
+		}
+
+	}
+
+	if (found) return 0;
+
+	// also check built-ins?
+
+	fprintf(stderr, "### Which - Command \"%s\" was not found.\n", target.c_str());
+	return 2; // not found.
+}

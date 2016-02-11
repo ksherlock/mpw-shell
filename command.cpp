@@ -95,12 +95,13 @@ namespace {
 	std::unordered_map<std::string, int (*)(Environment &, const std::vector<std::string> &, const fdmask &)> builtins = {
 		{"directory", builtin_directory},
 		{"echo", builtin_echo},
+		{"export", builtin_export},
 		{"parameters", builtin_parameters},
 		{"quote", builtin_quote},
 		{"set", builtin_set},
-		{"unset", builtin_unset},
-		{"export", builtin_export},
 		{"unexport", builtin_unexport},
+		{"unset", builtin_unset},
+		{"which", builtin_which},
 	};
 
 
