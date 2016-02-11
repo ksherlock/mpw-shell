@@ -20,6 +20,11 @@ namespace {
 	}
 }
 
+	std::string Environment::get(const std::string & key) const {
+		auto iter = find(key);
+		if (iter == end()) return "";
+		return iter->second;
+	}
 
 	Environment::iterator Environment::find( const std::string & key ) {
 		std::string k(key);

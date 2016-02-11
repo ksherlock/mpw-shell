@@ -56,12 +56,12 @@ public:
 	void unset(const std::string &k);
 	void unset();
 
+	std::string get(const std::string &k) const;
+
 	constexpr bool echo() const noexcept { return _echo; }
 	constexpr bool test() const noexcept { return _test; }
-	constexpr bool exit() const noexcept { return _and_or ? false : _exit; }
+	constexpr bool exit() const noexcept { return _exit; }
 	constexpr int status() const noexcept { return _status; }
-
-	bool and_or(bool v) { std::swap(v, _and_or); return v; }
 
 	int status(int i, bool throw_up = true);
 	int status(int i, const std::nothrow_t &);
@@ -107,8 +107,6 @@ private:
 
 	bool _exit = false;
 	bool _test = false;
-
-	bool _and_or = false;
 
 	bool _echo = false;
 	int _status = 0;
