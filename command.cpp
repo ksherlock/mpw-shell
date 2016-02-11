@@ -80,7 +80,7 @@ void launch_mpw(const Environment &env, const std::vector<std::string> &argv, co
 		// handle any indirection...
 		fds.dup();
 
-		execvp(cargv.front(), cargv.data());
+		execv(mpw_path().c_str(), cargv.data());
 		perror("execvp: ");
 		exit(EX_OSERR); // raise a signal?
 }
@@ -168,11 +168,11 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
 	std::string s = expand_vars(text, env);
 
-	env.echo("%s", s.c_str()); 
 
 	process p;
 	try {
 		auto tokens = tokenize(s, false);
+		if (tokens.empty()) return 0;
 		parse_tokens(std::move(tokens), p);
 	} catch(std::exception &e) {
 		fprintf(stderr, "%s\n", e.what());
@@ -180,6 +180,8 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 	}
 
 	if (p.arguments.empty()) return 0;
+	
+	env.echo("%s", s.c_str()); 
 
 	fdmask newfds = p.fds | fds;
 
@@ -188,6 +190,7 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
 	auto iter = builtins.find(name);
 	if (iter != builtins.end()) {
+		env.set("command", name);
 		int status = iter->second(env, p.arguments, newfds);
 		return env.status(status, throwup);
 	}
@@ -197,6 +200,15 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 		fprintf(stderr, "### MPW Shell - startup file may not contain external commands.\n");
 		return env.status(0);
 	}
+
+	name = p.arguments.front();
+	fs::path path = which(env, name);
+	if (path.empty()) {
+		fprintf(stderr, "### MPW Shell - Command \"%s\" was not found.\n", name.c_str());
+		return env.status(-1, throwup);
+	}
+	env.set("command", path);
+	p.arguments[0] = path;
 
 	int status = execute_external(env, p.arguments, newfds);
 
@@ -208,6 +220,8 @@ int evaluate_command::execute(Environment &env, const fdmask &fds, bool throwup)
 	if (control_c) throw execution_of_input_terminated();
 
 	std::string s = expand_vars(text, env);
+
+	env.set("command", "evaluate");
 
 	env.echo("%s", s.c_str());
 
@@ -313,11 +327,16 @@ int begin_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 	std::string b = expand_vars(begin, env);
 	std::string e = expand_vars(end, env);
 
+
+	env.set("command", type == BEGIN ? "end" : ")");
+
 	// echo!
 	env.echo("%s ... %s",
 		b.c_str(),
 		e.c_str()
 	);
+
+
 
 	// tokenize the begin and end commands.
 	// begin may not have extra arguments.  end may have redirection.
@@ -399,6 +418,8 @@ int if_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 	bool ok = false;
 
 	std::string e = expand_vars(end, env);
+
+	env.set("command", "end");
 
 	// parse end for indirection.
 	fdmask newfds;
