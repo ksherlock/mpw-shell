@@ -13,7 +13,10 @@
 
 
 
-
+namespace ToolBox {
+	std::string MacToUnix(const std::string path);
+	std::string UnixToMac(const std::string path);
+}
 
 template<class T>
 T pop(std::vector<T> &v) {
@@ -42,7 +45,9 @@ int open(const std::string &name, int flags) {
 
 	// dup2 does not copy the O_CLOEXEC flag so it's safe to use.
 
-	int fd = ::open(name.c_str(), flags | O_CLOEXEC, 0666);
+	std::string uname = ToolBox::MacToUnix(name);
+
+	int fd = ::open(uname.c_str(), flags | O_CLOEXEC, 0666);
 	if (fd < 0) {
 		open_error(name);
 		return -1;

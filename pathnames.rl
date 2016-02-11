@@ -117,10 +117,41 @@ namespace {
 		write data;
 	}%%
 
+	%%{
+		machine dev;
+
+		main := 
+			'/dev/null'i $eof{ return "/dev/null"; }
+			|
+			'/dev/stderr'i $eof{ return "/dev/stderr"; }
+			|
+			'/dev/stdout'i $eof{ return "/dev/stdout"; }
+		;
+		write data;
+	}%%
+
 }
 
 namespace ToolBox
 {
+
+	std::string check_dev(std::string &&str) {
+
+		const char *p = str.c_str();
+		const char *pe = p + str.length();
+		const char *eof = pe;
+
+		int cs;
+		%%{
+			machine dev;
+			write init;
+			write exec;
+
+		}%%
+
+		return str;
+
+	}
 
 	std::string MacToUnix(const std::string path)
 	{
@@ -173,8 +204,7 @@ namespace ToolBox
 			write exec;
 		}%%
 
-
-		return rv;
+		return check_dev(std::move(rv));
 	}
 
 
