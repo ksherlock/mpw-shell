@@ -606,3 +606,50 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 	fprintf(stderr, "### Which - Command \"%s\" was not found.\n", target.c_str());
 	return 2; // not found.
 }
+
+int builtin_aboutbox(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
+	// the most important command of all!
+
+	if (tokens.size() == 2 && tokens[1] == "--moof") {
+
+		fputs(
+		"\n"
+		"              ##                                            \n"
+		"            ##  ##  ####                                    \n"
+		"            ##  ####  ##                                    \n"
+		"          ##          ##                                    \n"
+		"        ##    ##    ##                              ##      \n"
+		"      ##            ##                              ####    \n"
+		"    ##                ##                          ##  ##    \n"
+		"      ########          ####                    ##    ##    \n"
+		"              ##            ####################      ##    \n"
+		"              ##            ##############          ##      \n"
+		"                ####          ############        ##        \n"
+		"                ######            ######          ##        \n"
+		"                ######                          ##          \n"
+		"                ####                            ##          \n"
+		"                ##                              ##          \n"
+		"                ##      ################        ##          \n"
+		"                ##    ##                ##        ##        \n"
+		"                ##    ##                  ##      ##        \n"
+		"                ##    ##                    ##    ##        \n"
+		"                ##    ##                    ##    ##        \n"
+		"              ##    ##                    ##    ##          \n"
+		"              ######                      ######            \n"
+		"\n"
+		,stdout);
+
+		return 0;
+	}
+
+
+	fputs(
+"+--------------------------------------+\n"
+"| MPW Shell 0.1 - February 2016        |\n"
+"|                                      |\n"
+"|                                      |\n"
+"| (c) 2016 Kelvin W Sherlock           |\n"
+"+--------------------------------------+\n"
+	,stdout);
+	return 0;
+}

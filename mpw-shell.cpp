@@ -476,7 +476,7 @@ int main(int argc, char **argv) {
 		}
 	};
 
-	if (!cflag) fprintf(stdout, "MPW Shell 0.0\n");
+	if (!cflag) fprintf(stdout, "MPW Shell 0.1\n");
 	e.startup(true);
 	read_file(p1, root() / "Startup");
 	e.startup(false);
