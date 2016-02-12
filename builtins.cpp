@@ -375,25 +375,29 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 		}
 
 		// todo -- if relative path does not exist, check {DirectoryPath}
-		std::string path = ToolBox::MacToUnix(argv.front());
-		int ok = chdir(path.c_str());
-		if (ok < 0) {
+		fs::path path = ToolBox::MacToUnix(argv.front());
+		std::error_code ec;
+		current_path(path, ec);
+		if (ec) {
 			fputs("### Directory - Unable to set current directory.\n", stderr);
-			perror("chdir: ");
+			fprintf(stderr, "# %s\n", ec.message().c_str());
 			return 1;
 		}
 	}
 	else {
 		// pwd
-		char buffer[MAXPATHLEN];
-		char *cp = getcwd(buffer, sizeof(buffer));
-		if (!cp) {
-			perror("getcwd: ");
+		std::error_code ec;
+		fs::path path = fs::current_path(ec);
+		if (ec) {
+
+			fputs("### Directory - Unable to get current directory.\n", stderr);
+			fprintf(stderr, "# %s\n", ec.message().c_str());
 			return 1;
+
 		}
 		// todo -- pathname translation?
 
-		std::string s = buffer;
+		std::string s = path;
 		if (!q) s = quote(std::move(s));
 		fprintf(stdout, "%s\n", s.c_str());
 	}
@@ -579,7 +583,7 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 			return 2;
 		}
 	}
-	
+
 	for(; ss; ++ss) {
 		if (p) fprintf(stderr, "checking %s\n", ss->c_str());
 
