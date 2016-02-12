@@ -286,4 +286,47 @@ namespace filesystem {
 		syscall(ec, ::chdir, p.c_str());
 	}
 
+
+
+
+	path canonical(const path& p, const path& base) {
+		error_code ec;
+		path rv = canonical(p, base, ec);
+		if (ec) 
+			throw filesystem_error("filesystem::canonical", p, ec);
+		return rv;
+	}
+
+	path canonical(const path& p, error_code& ec) {
+		char *cp;
+		char buffer[PATH_MAX];
+
+		ec.clear();
+		cp = realpath(p.c_str(), buffer);
+		if (cp) return path(cp);
+		ec = error_code(errno, std::system_category());
+		return path();
+	}
+
+	path canonical(const path& p, const path& base, error_code& ec) {
+
+		char *cp;
+		char buffer[PATH_MAX];
+		
+		ec.clear();
+
+		if (p.is_absolute()) cp = realpath(p.c_str(), buffer);
+		else {
+			path tmp = base;
+			tmp /= p;
+			cp = realpath(tmp.c_str(), buffer);
+		}
+		if (cp) return path(cp);
+		ec = error_code(errno, std::system_category());
+		return path();
+	}
+
+
+
+
 }
