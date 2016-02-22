@@ -18,8 +18,9 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sysexits.h>
+#include <atomic>
 
-extern volatile int control_c;
+extern std::atomic<int> control_c;
 
 namespace fs = filesystem;
 extern fs::path mpw_path();

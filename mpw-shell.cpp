@@ -29,6 +29,7 @@
 #include <pwd.h>
 #include <sysexits.h>
 #include <paths.h>
+#include <atomic>
 
 namespace fs = filesystem;
 
@@ -168,13 +169,13 @@ int read_make(phase1 &p1, phase2 &p2, Environment &env, const std::vector<std::s
 	return env.status();
 }
 
-volatile int control_c = 0;
+std::atomic<int> control_c{0};
 void control_c_handler(int signal, siginfo_t *sinfo, void *context) {
 
 	// libedit gobbles up the first control-C and doesn't return until the second.
-	// GNU's readline may return no the first.
+	// GNU's readline may return on the first.
 	if (control_c > 3) abort();
-	control_c++;
+	++control_c;
 	//fprintf(stderr, "interrupt!\n");
 }
 
