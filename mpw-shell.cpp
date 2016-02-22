@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <sysexits.h>
+#include <paths.h>
 
 namespace fs = filesystem;
 
@@ -368,8 +369,9 @@ fs::path mpw_path() {
 
 	if (path.empty()) {
 		std::error_code ec;
-
-		std::string s(getenv("PATH"));
+		const char *cp = getenv("PATH");
+		if (!cp) cp = _PATH_DEFPATH;
+		std::string s(cp);
 		string_splitter ss(s, ':');
 		for (; ss; ++ss) {
 			if (ss->empty()) continue;
