@@ -1,0 +1,51 @@
+# MPW Shell start up script.
+# only built-in commands are executed.
+#
+# {MPW} is pre-defined.	
+
+if {MPWVersion}==""
+	set -e MPWVersion 3.5
+end
+
+set -e ShellDirectory "{MPW}{MPWVersion}:"
+set -e Commands "{ShellDirectory}Tools:,{MPW}Tools:,:"
+
+set -e SysTempFolder "/tmp/"
+set -e TempFolder "/tmp/"
+
+# MPW IIgs
+set -e AIIGSIncludes "{MPW}Interfaces:AIIGSIncludes:"
+set -e RIIGSIncludes "{MPW}Interfaces:RIIGSIncludes:"
+set -e CIIGSIncludes "{MPW}Interfaces:CIIGSIncludes:"
+set -e CIIGSLibraries "{MPW}Libraries:CIIGSLibraries:"
+set -e PIIGSIncludes "{MPW}Interfaces:PIIGSIncludes:"
+set -e PIIGSLibraries "{MPW}Libraries:PIIGSLibraries:"
+
+# MPW Macintosh compilers
+set -e SCIncludes "{ShellDirectory}:Interfaces:CIncludes:"
+set -e CIncludes "{ShellDirectory}:Interfaces:CIncludes:"
+set -e AIncludes "{ShellDirectory}Interfaces:AIncludes:"
+set -e RIncludes "{ShellDirectory}Interfaces:RIncludes:"
+set -e PInterfaces "{ShellDirectory}Interfaces:PInterfaces:"
+
+set -e Libraries "{ShellDirectory}Libraries:Libraries:"
+set -e PLibraries "{ShellDirectory}Libraries:PLibraries:"
+set -e CLibraries "{ShellDirectory}Libraries:CLibraries:"
+
+set -e PPCLibraries "{ShellDirectory}Libraries:PPCLibraries:"
+set -e SharedLibraries "{ShellDirectory}Libraries:SharedLibraries:"
+set -e CFM68KLibraries "{ShellDirectory}Libraries:CFM68KLibraries:"
+
+#MetroWerks
+set -e MW68KLibraries "{MPW}Libraries:MW68KLibraries:"
+set -e MWPPCLibraries "{MPW}Libraries:MWPPCLibraries:"
+
+set -e CWCIncludes "{MPW}Interfaces:CWCIncludes:"
+set -e CWANSIIncludes "{MPW}Interfaces:CWANSIIncludes:"
+set -e MWCIncludes "{CIncludes}"
+
+
+#Newton Tools
+set -e ARMCIncludes "{MPW}Interfaces:ARMCIncludes:"
+
+set -e AsmMatOpts "-t 4"
