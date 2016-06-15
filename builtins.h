@@ -19,6 +19,8 @@ int builtin_unexport(Environment &e, const std::vector<std::string> &, const fdm
 int builtin_which(Environment &e, const std::vector<std::string> &, const fdmask &);
 int builtin_aboutbox(Environment &e, const std::vector<std::string> &, const fdmask &);
 
+int builtin_exists(Environment &e, const std::vector<std::string> &, const fdmask &);
+
 int builtin_evaluate(Environment &e, std::vector<token> &&, const fdmask &);
 
 #endif

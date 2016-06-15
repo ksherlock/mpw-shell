@@ -97,6 +97,7 @@ namespace {
 		{"aboutbox", builtin_aboutbox},
 		{"directory", builtin_directory},
 		{"echo", builtin_echo},
+		{"exists", builtin_exists},
 		{"export", builtin_export},
 		{"parameters", builtin_parameters},
 		{"quote", builtin_quote},

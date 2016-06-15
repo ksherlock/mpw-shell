@@ -11,6 +11,7 @@
 
 #include <cstdio>
 #include <cctype>
+#include <unistd.h>
 
 #include "cxx/string_splitter.h"
 #include "cxx/filesystem.h"
@@ -401,6 +402,85 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 		if (!q) s = quote(std::move(s));
 		fprintf(stdout, "%s\n", s.c_str());
 	}
+	return 0;
+}
+
+
+int builtin_exists(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
+
+	bool _a = false; // print if alias/symlink
+	bool _d = false; // print if directory
+	bool _f = false; // print if normal file
+	bool _n = false; // don't follow alias
+	bool _w = false; // print if normal file + writable
+	bool _q = false; // don't quote names
+	bool error = false;
+
+	std::vector<std::string> argv = getopt(tokens, [&](char c){
+		switch(tolower(c))
+		{
+			case 'a':
+				_a = true;
+				break;
+			case 'd':
+				_d = true;
+				break;
+			case 'f':
+				_f = true;
+				break;
+			case 'n':
+				_n = true;
+				break;
+			case 'q':
+				_q = true;
+				break;
+			case 'w':
+				_w = true;
+				break;
+			default:
+				fprintf(stderr, "### Exists - \"-%c\" is not an option.\n", c);
+				error = true;
+				break;
+		}
+	});	
+
+	if (_w) _f = false;
+
+	if (_a + _d + _f + _w > 1) {
+		fputs("### Exists - Conflicting options were specified.\n", stderr);
+		error = true;
+	}
+
+	if (argv.size() < 1) {
+		fputs("### Exists - Not enough parameters were specified.\n", stderr);
+		error = true;
+	}
+
+
+
+	if (error) {
+		fputs("# Usage - Exists [-a | -d | -f | -w] [-n] [-q] name...\n", stderr);
+		return 1;
+	}
+
+	for (auto &s : argv) {
+		std::string path = ToolBox::MacToUnix(s);
+		std::error_code ec;
+		fs::file_status st = _n ? fs::symlink_status(path, ec) : fs::status(path, ec);
+		if (ec) continue;
+
+		if (_d && !fs::is_directory(st)) continue;
+		if (_a && !fs::is_symlink(st)) continue;
+		if (_f && !fs::is_regular_file(st)) continue;
+		if (_w && !fs::is_regular_file(st)) continue;
+		if (_w && (access(path.c_str(), W_OK | F_OK) < 0)) continue; 
+
+		if (!_q) s = quote(std::move(s));
+		fprintf(stdout, "%s\n", s.c_str());
+
+	}
+
+
 	return 0;
 }
 
