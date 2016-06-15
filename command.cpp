@@ -104,6 +104,7 @@ namespace {
 		{"set", builtin_set},
 		{"unexport", builtin_unexport},
 		{"unset", builtin_unset},
+		{"version", builtin_version},
 		{"which", builtin_which},
 	};
 

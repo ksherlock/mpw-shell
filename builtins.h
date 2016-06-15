@@ -18,6 +18,7 @@ int builtin_export(Environment &e, const std::vector<std::string> &, const fdmas
 int builtin_unexport(Environment &e, const std::vector<std::string> &, const fdmask &);
 int builtin_which(Environment &e, const std::vector<std::string> &, const fdmask &);
 int builtin_aboutbox(Environment &e, const std::vector<std::string> &, const fdmask &);
+int builtin_version(Environment &e, const std::vector<std::string> &, const fdmask &);
 
 int builtin_exists(Environment &e, const std::vector<std::string> &, const fdmask &);
 

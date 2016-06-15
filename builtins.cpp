@@ -19,6 +19,8 @@
 //MAXPATHLEN
 #include <sys/param.h>
 
+#define VERSION "0.1"
+
 
 namespace ToolBox {
 	std::string MacToUnix(const std::string path);
@@ -687,6 +689,46 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 	return 2; // not found.
 }
 
+int builtin_version(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
+
+
+	bool _v = false;
+	bool error = false;
+
+	auto argv = getopt(tokens, [&](char c){
+		switch(tolower(c))
+		{
+			case 'v':
+				_v = true;
+				break;
+			default:
+				fprintf(stderr, "### Version - \"-%c\" is not an option.\n", c);
+				error = true;
+				break;
+		}
+	});
+
+	if (argv.size() != 0) {
+		fprintf(stderr, "### Version - Too many parameters were specified.\n");
+		error = true;
+	}
+
+	if (error) {
+		fprintf(stderr, "# Usage - Version [-v]\n");
+		return 1;
+	}
+
+	//fputs("MPW Shell 3.5, Copyright Apple Computer, Inc. 1985-99. All rights reserved.\n", stdout);
+	fputs("MPW Shell " VERSION ", Copyright Kelvin W Sherlock 2016. All rights reserved.\n", stdout);
+	fputs("based on MPW Shell 3.5, Copyright Apple Computer, Inc. 1985-99. All rights reserved.\n", stdout);
+
+	if (_v) {
+		fputs("This version built on " __DATE__ " at " __TIME__ ".\n", stdout);
+	}
+
+	return 0;
+}
+
 int builtin_aboutbox(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
 	// the most important command of all!
 
@@ -723,13 +765,13 @@ int builtin_aboutbox(Environment &env, const std::vector<std::string> &tokens, c
 	}
 
 
-	fputs(
+	fprintf(stdout,
 "+--------------------------------------+\n"
-"| MPW Shell 0.1 - February 2016        |\n"
+"| MPW Shell %-4s                       |\n"
 "|                                      |\n"
 "|                                      |\n"
 "| (c) 2016 Kelvin W Sherlock           |\n"
 "+--------------------------------------+\n"
-	,stdout);
+	,VERSION);
 	return 0;
 }
