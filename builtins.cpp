@@ -84,6 +84,81 @@ inline int fputc(int c, int fd) {
 	auto rv = write(fd, &tmp, 1);  return rv < 0 ? EOF : c;
 }
 
+std::vector<std::string> load_argv(Environment &env) {
+	std::vector<std::string> rv;
+	int n = env.pound();
+	if ( n <= 0 ) return rv;
+	n = std::min(n, (int)255);
+	rv.reserve(n);
+
+	for (int i = 1; i <= n; ++i) {
+		rv.push_back(env.get(std::to_string(i)));
+	}
+	return rv;
+}
+
+int builtin_shift(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
+
+	int n = 1;
+
+	if (tokens.size() > 3) {
+		fputs("### Shift - Too many parameters were specified.\n", stderr);
+		fputs("# Usage - Shift [number]\n", stderr);
+		return 1;
+	}
+
+	if (tokens.size() == 2) {
+
+		value v(tokens[1]);
+		if (v.is_number() && v.number >= 0) n = v.number;
+		else {
+			fputs("### Shift - The parameter must be a positive number.\n", stderr);
+			fputs("# Usage - Shift [number]\n", stderr);
+			return 1;
+		}
+	}
+
+	if (n == 0) return 0;
+
+	auto argv = load_argv(env);
+	if (argv.empty()) return 0;
+
+	std::move(argv.begin() + n , argv.end(), argv.begin());
+	do {
+		env.unset(std::to_string(argv.size()));
+		argv.pop_back();
+	} while (--n);
+
+	env.set_argv(argv);
+/*
+	for (unsigned i = 0; i < argv.size(); ++i) {
+		env.set(std::to_string(i+1), argv[i]);
+	}
+	env.set("#", argv.size());
+
+	// fix Parameters and "Parameters"
+	std::string p;
+	for (const auto &s : argv) {
+		p += quote(s);
+		p += " ";
+	}
+	p.pop_back();
+	env.set("\"Parameters\"", p);
+
+	p.clear();
+
+	for (const auto &s : argv) {
+		p += s;
+		p += " ";
+	}
+	p.pop_back();
+	env.set("Parameters", p);
+*/
+
+	return 0;
+}
+
+
 
 int builtin_unset(Environment &env, const std::vector<std::string> &tokens, const fdmask &) {
 	for (auto iter = tokens.begin() + 1; iter != tokens.end(); ++iter) {

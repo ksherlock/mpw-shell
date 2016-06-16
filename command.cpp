@@ -175,6 +175,7 @@ namespace {
 		{"parameters", builtin_parameters},
 		{"quote", builtin_quote},
 		{"set", builtin_set},
+		{"shift", builtin_shift},
 		{"unexport", builtin_unexport},
 		{"unset", builtin_unset},
 		{"version", builtin_version},

@@ -18,6 +18,22 @@ namespace {
 		if (s.size() == 1 && s == "0") return false;
 		return true;
 	}
+
+	bool tf(long v) { return v; }
+
+	// used for #.  base 10 only, extra chars ignored.
+	int to_pound_int(const std::string &s) {
+		if (s.empty()) return 0;
+		try {
+			int n = stoi(s);
+			return std::max(n, (int)0);
+		}
+		catch(std::exception e) {}
+		return 0;
+	}
+
+	int to_pound_int(long n) { return std::max(n, (long)0); }
+
 }
 
 	std::string Environment::get(const std::string & key) const {
@@ -38,6 +54,7 @@ namespace {
 		return _table.find(k);
 	}
 
+
 	void Environment::set(const std::string &key, const std::string &value, bool exported) {
 		std::string k(key);
 		lowercase(k);
@@ -45,10 +62,65 @@ namespace {
 		if (k == "echo") _echo = tf(value);
 		if (k == "exit") _exit = tf(value);
 		if (k == "test") _test = tf(value);
+		if (k == "#") _pound = to_pound_int(value);
 
 		// don't need to check {status} because that will be clobbered
 		// by the return value.
+		set_common(k, value, exported);
+	}
 
+	void Environment::set(const std::string &key, long value, bool exported) {
+		std::string k(key);
+		lowercase(k);
+
+		if (k == "echo") _echo = tf(value);
+		if (k == "exit") _exit = tf(value);
+		if (k == "test") _test = tf(value);
+		if (k == "#") _pound = to_pound_int(value);
+
+		// don't need to check {status} because that will be clobbered
+		// by the return value.
+		set_common(k, std::to_string(value), exported);
+	}
+
+	void Environment::set_argv(const std::string &argv0, const std::vector<std::string>& argv) {
+		set_common("0", argv0, false);
+		set_argv(argv);
+	}
+	void Environment::set_argv(const std::vector<std::string>& argv) {
+		_pound = argv.size();
+		set_common("#", std::to_string(argv.size()), false);
+
+		int n = 1;
+		for (const auto &s : argv) {
+			set_common(std::to_string(n++), s, false);
+		}
+
+		// parameters, "parameters" ...
+		std::string p;
+		for (const auto &s : argv) {
+			p.push_back('"');
+			p += s;
+			p.push_back('"');
+			p.push_back(' ');
+		}
+		p.pop_back();
+		set_common("\"parameters\"", p, false);
+		p.clear();
+
+		for (const auto &s : argv) {
+			p += s;
+			p.push_back(' ');
+		}
+		p.pop_back();
+		set_common("parameters", p, false);
+
+
+	}
+
+
+	void Environment::set_common(const std::string &k, const std::string &value, bool exported)
+	{
 		EnvironmentEntry v(value, exported);
 
 		auto iter = _table.find(k);
@@ -59,8 +131,12 @@ namespace {
 			// if previously exported, keep exported.
 			if (iter->second) v = true;
 			iter->second = std::move(v);
-		}
+		}	
 	}
+
+
+
+
 
 	void Environment::unset(const std::string &key) {
 		std::string k(key);
@@ -68,6 +144,7 @@ namespace {
 		if (k == "echo") _echo = false;
 		if (k == "exit") _exit = false;
 		if (k == "test") _test = false;
+		if (k == "#") _pound = 0;
 		_table.erase(k);
 	}
 

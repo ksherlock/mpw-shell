@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <utility>
 #include <new>
+#include <vector>
 
 
 
@@ -52,7 +53,11 @@ public:
 
 	//const EnvironmentEntry & lookup(const std::string &s);
 
+	void set_argv(const std::string &argv0, const std::vector<std::string>& argv);
+	void set_argv(const std::vector<std::string>& argv);
+
 	void set(const std::string &k, const std::string &value, bool exported = false);
+	void set(const std::string &k, long l, bool exported = false);
 	void unset(const std::string &k);
 	void unset();
 
@@ -62,6 +67,7 @@ public:
 	constexpr bool test() const noexcept { return _test; }
 	constexpr bool exit() const noexcept { return _exit; }
 	constexpr int status() const noexcept { return _status; }
+	constexpr int pound() const noexcept { return _pound; }
 
 	int status(int i, bool throw_up = true);
 	int status(int i, const std::nothrow_t &);
@@ -121,8 +127,11 @@ private:
 
 	bool _echo = false;
 	int _status = 0;
+	int _pound = 0;
 	bool _startup = false;
 	bool _passthrough = false;
+
+	void set_common(const std::string &, const std::string &, bool);
 
 	std::unordered_map<std::string, EnvironmentEntry> _table;
 };
