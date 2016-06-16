@@ -120,6 +120,9 @@
 	END = /end/i;
 	BEGIN = /begin/i;
 	EVALUATE = /evaluate/i;
+	LOOP = /loop/i;
+	BREAK = /break/i;
+	CONTINUE = /continue/i;
 
 
 	main := |*
@@ -129,8 +132,8 @@
 		ELSE %eof{ type = ELSE; return; };
 		ELSE ws => { type = ELSE; return; };
 
-		ELSE ws+ IF %eof{ type = ELSE_IF; return; };
-		ELSE ws+ IF ws => { type = ELSE_IF; return; };
+		#ELSE ws+ IF %eof{ type = ELSE_IF; return; };
+		#ELSE ws+ IF ws => { type = ELSE_IF; return; };
 
 		EVALUATE %eof{ type = EVALUATE; return; };
 		EVALUATE ws => { type = EVALUATE; return; };
@@ -140,6 +143,16 @@
 
 		BEGIN %eof{ type = BEGIN; return; };
 		BEGIN ws => { type = BEGIN; return; };
+
+		LOOP %eof{ type = LOOP; return; };
+		LOOP ws => { type = LOOP; return; };
+
+		BREAK %eof{ type = BREAK; return; };
+		BREAK ws => { type = BREAK; return; };
+
+		CONTINUE %eof{ type = CONTINUE; return; };
+		CONTINUE ws => { type = CONTINUE; return; };
+
 
 		'(' => { type = LPAREN; return; };
 	*|;

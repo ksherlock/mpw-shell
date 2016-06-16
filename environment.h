@@ -98,12 +98,23 @@ public:
 		catch (...) { _indent = i; throw; } 
 	}
 
+	template<class FX>
+	void loop_indent_and(FX &&fx) {
+		int i = _indent++;
+		int j = _loop++;
+		try { fx(); _indent = i; _loop = j; }
+		catch (...) { _indent = i; _loop = j; throw; } 
+	}
+
+	constexpr bool loop() const noexcept { return _loop; }
+
 private:
 	// magic variables.
 
 	friend class indent_helper;
 
 	int _indent = 0;
+	int _loop = 0;
 
 	bool _exit = false;
 	bool _test = false;

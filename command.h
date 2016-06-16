@@ -22,7 +22,7 @@ struct command {
 	{}
 
 	virtual bool terminal() const noexcept {
-		return type == EVALUATE || type == COMMAND;
+		return type == EVALUATE || type == COMMAND || type == BREAK || type == CONTINUE;
 	}
 
 	int type = 0;
@@ -59,6 +59,29 @@ struct evaluate_command  : public command {
 
 	virtual int execute(Environment &e, const fdmask &fds, bool throwup = true) final override;
 };
+
+
+struct break_command : public command {
+
+	template<class S>
+	break_command(S &&s) : command(BREAK), text(std::forward<S>(s))
+	{}
+
+	std::string text;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
+};
+
+struct continue_command : public command {
+
+	template<class S>
+	continue_command(S &&s) : command(CONTINUE), text(std::forward<S>(s))
+	{}
+
+	std::string text;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
+};
+
+
 
 struct binary_command : public command {
 
@@ -122,6 +145,19 @@ struct begin_command : public vector_command {
 	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
 };
 
+struct loop_command : public vector_command {
+
+	template<class S1, class S2>
+	loop_command(int t, command_ptr_vector &&v, S1 &&b, S2 &&e) :
+		vector_command(t, std::move(v)), begin(std::forward<S1>(b)), end(std::forward<S2>(e))
+	{}
+
+	std::string begin;
+	std::string end;
+
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
+};
+
 typedef std::unique_ptr<struct if_else_clause> if_else_clause_ptr;
 struct if_command : public command {
 
@@ -150,5 +186,7 @@ struct if_else_clause : public vector_command {
 
 	//bool evaluate(const Environment &e);
 };
+
+
 
 #endif

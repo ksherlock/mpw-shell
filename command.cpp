@@ -30,6 +30,79 @@ namespace ToolBox {
 	std::string UnixToMac(const std::string path);
 }
 
+
+
+
+
+namespace {
+
+	struct break_command_t {};
+	struct continue_command_t {};
+
+	/*
+	 * returns:
+	 * <0 -> error
+	 * 0 -> false
+	 * >0 -> true
+	 */
+
+	int bad_if(const char *name) {
+		fprintf(stderr, "### %s - Missing if keyword.\n", name);
+		fprintf(stderr, "# Usage - %s [if expression...]\n", name);
+		return -3;
+	}
+	int evaluate(int type, const std::string &s, Environment &env) {
+
+		auto tokens = tokenize(s, true);
+		std::reverse(tokens.begin(), tokens.end());
+
+		int32_t e;
+
+		switch(type) {
+			default: return 0;
+
+			case BREAK:
+			case CONTINUE:
+			case ELSE:
+				tokens.pop_back();
+
+				if (tokens.empty()) return 1;
+
+				if (strcasecmp(tokens.back().string.c_str(), "if") != 0) {
+					const char *name = "";
+					switch(type) {
+						case BREAK: name = "Break"; break;
+						case CONTINUE: name = "Continue"; break;
+						case ELSE: name = "Else"; break;
+					}
+					return bad_if(name);
+				}
+				// fall through.
+			case IF:
+				tokens.pop_back();
+				try {
+					e = evaluate_expression("If", std::move(tokens));
+				}
+				catch (std::exception &ex) {
+					fprintf(stderr, "%s\n", ex.what());
+					return -5;
+				}
+				break;
+		}
+		return !!e;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
 fs::path which(const Environment &env, const std::string &name) {
 	std::error_code ec;
 
@@ -243,6 +316,51 @@ int evaluate_command::execute(Environment &env, const fdmask &fds, bool throwup)
 }
 
 
+int break_command::execute(Environment &env, const fdmask &fds, bool throwup) {
+
+	if (control_c) throw execution_of_input_terminated();
+
+	std::string s = expand_vars(text, env);
+
+	env.set("command", "break");
+
+	env.echo("%s", s.c_str());
+	if (!env.loop()) {
+		fputs("MPW Shell - Break must be within for or loop.\n", stderr);
+		return env.status(-3, throwup);
+	}
+
+	// check/evaluate if clause.
+	int status = evaluate(BREAK, s, env);
+	if (status > 0)
+		throw break_command_t();
+	return env.status(status, throwup);
+
+}
+
+int continue_command::execute(Environment &env, const fdmask &fds, bool throwup) {
+
+	if (control_c) throw execution_of_input_terminated();
+
+	std::string s = expand_vars(text, env);
+
+	env.set("command", "continue");
+
+	env.echo("%s", s.c_str());
+	if (!env.loop()) {
+		fputs("MPW Shell - Continue must be within for or loop.\n", stderr);
+		return env.status(-3, throwup);
+	}
+
+
+	// check/evaluate if clause.
+	int status = evaluate(CONTINUE, s, env);
+	if (status > 0)
+		throw continue_command_t();
+	return env.status(status, throwup);
+
+}
+
 int or_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 
 	int rv = 0;
@@ -367,50 +485,60 @@ int begin_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 	return env.status(rv);
 }
 
-namespace {
+
+int loop_command::execute(Environment &env, const fdmask &fds, bool throwup) {
+	// todo -- parse end for redirection.
+
+	std::string b = expand_vars(begin, env);
+	std::string e = expand_vars(end, env);
 
 
-	/*
-	 * returns:
-	 * <0 -> error
-	 * 0 -> false
-	 * >0 -> true
-	 */
+	env.set("command", "end");
 
-	int evaluate(int type, const std::string &s, Environment &env) {
+	// echo!
+	env.echo("%s ... %s",
+		b.c_str(),
+		e.c_str()
+	);
 
-		auto tokens = tokenize(s, true);
-		std::reverse(tokens.begin(), tokens.end());
-
-		int32_t e;
-
-		switch(type) {
-			default: return 0;
-
-			case ELSE_IF:
-				tokens.pop_back();
-			case IF:
-				tokens.pop_back();
-				try {
-					e = evaluate_expression("If", std::move(tokens));
-				}
-				catch (std::exception &ex) {
-					fprintf(stderr, "%s\n", ex.what());
-					return -5;
-				}
-				break;
-
-			case ELSE:
-				e = 1;
-				if (tokens.size() > 1) {
-					fprintf(stderr, "### Else - Missing if keyword.\n");
-					fprintf(stderr, "# Usage - Else [if expression...]\n");
-					return -3;
-				}
-		}
-		return !!e;
+	// check for extra tokens...
+	auto bt = tokenize(b, true);
+	if (bt.size() != 1) {
+		fprintf(stderr, "### Loop - Too many parameters were specified.\n");
+		fprintf(stderr, "Usage - Loop\n");
+		return env.status(-3);
 	}
+
+	fdmask newfds;
+	int status = check_ends(e, newfds);
+	newfds |= fds;
+	if (status) return env.status(status);
+
+	int rv = 0;
+	for(;; env.echo("end") ) {
+
+		if (control_c) throw execution_of_input_terminated();
+
+		try {
+			env.loop_indent_and([&]{
+				rv = vector_command::execute(env, newfds);		
+			});
+		}
+		catch (continue_command_t &ex) {
+			continue;
+		}
+		catch (break_command_t &ex) {
+			break;
+		}
+		
+	}
+	env.echo("end");
+
+	return env.status(rv);
 }
+
+
+
 
 /*
  * the entire command prints even if there is an error with the expression.

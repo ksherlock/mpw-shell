@@ -27,6 +27,7 @@ bool phase2_parser::continuation() const {
 		if (e.major == IF) return true;
 		if (e.major == AMP_AMP) return true;
 		if (e.major == PIPE_PIPE) return true;
+		if (e.major == LOOP) return true;
 	}
 	return false;
 }
@@ -100,9 +101,12 @@ command(RV) ::= term(T). { RV = std::move(T); }
 
 term(RV) ::= COMMAND(C).       { RV = std::make_unique<simple_command>(std::move(C)); }
 term(RV) ::= EVALUATE(C).      { RV = std::make_unique<evaluate_command>(std::move(C)); }
+term(RV) ::= BREAK(C).         { RV = std::make_unique<break_command>(std::move(C)); }
+term(RV) ::= CONTINUE(C).      { RV = std::make_unique<continue_command>(std::move(C)); }
 term(RV) ::= if_command(C).    { RV = std::move(C); }
 term(RV) ::= begin_command(C). { RV = std::move(C); }
 term(RV) ::= paren_command(C). { RV = std::move(C); }
+term(RV) ::= loop_command(C).  { RV = std::move(C); }
 
 /*
  * fall back to an end error.  w/o fallback, it will cause a parse conflict.
@@ -136,6 +140,12 @@ paren_command(RV) ::= LPAREN(T) paren_list(L) RPAREN(E). {
 begin_command(RV) ::= BEGIN(T) sep compound_list(L) END(E). {
 	RV = std::make_unique<begin_command>(@T, std::move(L), std::move(T), std::move(E));
 }
+
+
+loop_command(RV) ::= LOOP(T) sep compound_list(L) END(E). {
+	RV = std::make_unique<loop_command>(@T, std::move(L), std::move(T), std::move(E));
+}
+
 
 if_command(RV) ::= IF(I) sep compound_list(L) END(E). {
 
