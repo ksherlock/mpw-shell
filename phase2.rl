@@ -121,6 +121,7 @@
 	BEGIN = /begin/i;
 	EVALUATE = /evaluate/i;
 	LOOP = /loop/i;
+	FOR = /for/i;
 	BREAK = /break/i;
 	CONTINUE = /continue/i;
 
@@ -146,6 +147,9 @@
 
 		LOOP %eof{ type = LOOP; return; };
 		LOOP ws => { type = LOOP; return; };
+
+		FOR %eof{ type = FOR; return; };
+		FOR ws => { type = FOR; return; };
 
 		BREAK %eof{ type = BREAK; return; };
 		BREAK ws => { type = BREAK; return; };

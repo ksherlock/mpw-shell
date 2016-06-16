@@ -28,6 +28,7 @@ bool phase2_parser::continuation() const {
 		if (e.major == AMP_AMP) return true;
 		if (e.major == PIPE_PIPE) return true;
 		if (e.major == LOOP) return true;
+		if (e.major == FOR) return true;
 	}
 	return false;
 }
@@ -107,6 +108,7 @@ term(RV) ::= if_command(C).    { RV = std::move(C); }
 term(RV) ::= begin_command(C). { RV = std::move(C); }
 term(RV) ::= paren_command(C). { RV = std::move(C); }
 term(RV) ::= loop_command(C).  { RV = std::move(C); }
+term(RV) ::= for_command(C).   { RV = std::move(C); }
 
 /*
  * fall back to an end error.  w/o fallback, it will cause a parse conflict.
@@ -146,6 +148,9 @@ loop_command(RV) ::= LOOP(T) sep compound_list(L) END(E). {
 	RV = std::make_unique<loop_command>(@T, std::move(L), std::move(T), std::move(E));
 }
 
+for_command(RV) ::= FOR(T) sep compound_list(L) END(E). {
+	RV = std::make_unique<for_command>(@T, std::move(L), std::move(T), std::move(E));
+}
 
 if_command(RV) ::= IF(I) sep compound_list(L) END(E). {
 

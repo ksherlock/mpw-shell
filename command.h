@@ -158,6 +158,20 @@ struct loop_command : public vector_command {
 	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
 };
 
+struct for_command : public vector_command {
+
+	template<class S1, class S2>
+	for_command(int t, command_ptr_vector &&v, S1 &&b, S2 &&e) :
+		vector_command(t, std::move(v)), begin(std::forward<S1>(b)), end(std::forward<S2>(e))
+	{}
+
+	std::string begin;
+	std::string end;
+
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
+};
+
+
 typedef std::unique_ptr<struct if_else_clause> if_else_clause_ptr;
 struct if_command : public command {
 

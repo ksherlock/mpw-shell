@@ -487,7 +487,6 @@ int begin_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
 
 int loop_command::execute(Environment &env, const fdmask &fds, bool throwup) {
-	// todo -- parse end for redirection.
 
 	std::string b = expand_vars(begin, env);
 	std::string e = expand_vars(end, env);
@@ -515,7 +514,7 @@ int loop_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 	if (status) return env.status(status);
 
 	int rv = 0;
-	for(;; env.echo("end") ) {
+	for(;;) {
 
 		if (control_c) throw execution_of_input_terminated();
 
@@ -525,17 +524,64 @@ int loop_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 			});
 		}
 		catch (break_command_t &ex) {
+			env.echo("end");
 			break;
 		}
-		catch (continue_command_t &ex) {
-			continue;
-		}
+		catch (continue_command_t &ex) {}
+		env.echo("end");
 	}
-	env.echo("end");
-
 	return env.status(rv);
 }
 
+int for_command::execute(Environment &env, const fdmask &fds, bool throwup) {
+
+	std::string b = expand_vars(begin, env);
+	std::string e = expand_vars(end, env);
+
+
+	env.set("command", "end");
+
+	// echo!
+	env.echo("%s ... %s",
+		b.c_str(),
+		e.c_str()
+	);
+
+	// check for extra tokens...
+	auto bt = tokenize(b, true);
+	if (bt.size() < 3 || strcasecmp(bt[2].string.c_str(), "in")) {
+		fprintf(stderr, "### For - Missing in keyword.\n");
+		fprintf(stderr, "Usage - For name in [word...]\n");
+		return env.status(-3);
+	}
+
+	fdmask newfds;
+	int status = check_ends(e, newfds);
+	newfds |= fds;
+	if (status) return env.status(status);
+
+	int rv = 0;
+	for (int i = 3; i < bt.size(); ++i ) {
+
+		if (control_c) throw execution_of_input_terminated();
+
+		env.set(bt[1].string, bt[i].string);
+
+		try {
+			env.loop_indent_and([&]{
+				rv = vector_command::execute(env, newfds);		
+			});
+		}
+		catch (break_command_t &ex) {
+			env.echo("end");
+			break;
+		}
+		catch (continue_command_t &ex) {}
+		env.echo("end");
+	}
+
+	return env.status(rv);
+}
 
 
 
