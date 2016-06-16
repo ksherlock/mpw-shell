@@ -9,6 +9,8 @@ Supported features
 ------------------
 * If ... [Else If] ... [Else] ... End
 * Begin ... End
+* Loop ... End
+* Break [If], Continue [If]
 * ( ... )
 * ||
 * &&
@@ -19,17 +21,21 @@ Not supported
 * pipes (|)
 * subshells (`...`, ``...``)
 * text-editing commands (search forward/backward, regular expressions, et cetera)
+* For In loops
 
 Builtin Commands
 ----------------
+* AboutBox
 * Directory
 * Echo
+* Exists
 * Export
 * Parameters
 * Quote
 * Set
 * Unexport
 * Unset
+* Version
 * Which
 
 
