@@ -524,13 +524,12 @@ int loop_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 				rv = vector_command::execute(env, newfds);		
 			});
 		}
-		catch (continue_command_t &ex) {
-			continue;
-		}
 		catch (break_command_t &ex) {
 			break;
 		}
-		
+		catch (continue_command_t &ex) {
+			continue;
+		}
 	}
 	env.echo("end");
 
