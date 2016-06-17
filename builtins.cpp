@@ -129,30 +129,6 @@ int builtin_shift(Environment &env, const std::vector<std::string> &tokens, cons
 	} while (--n);
 
 	env.set_argv(argv);
-/*
-	for (unsigned i = 0; i < argv.size(); ++i) {
-		env.set(std::to_string(i+1), argv[i]);
-	}
-	env.set("#", argv.size());
-
-	// fix Parameters and "Parameters"
-	std::string p;
-	for (const auto &s : argv) {
-		p += quote(s);
-		p += " ";
-	}
-	p.pop_back();
-	env.set("\"Parameters\"", p);
-
-	p.clear();
-
-	for (const auto &s : argv) {
-		p += s;
-		p += " ";
-	}
-	p.pop_back();
-	env.set("Parameters", p);
-*/
 
 	return 0;
 }
@@ -625,7 +601,7 @@ int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask
 
 			switch(type) {
 				case '=':
-					env.set(name, std::to_string(i));
+					env.set(name, i);
 					break;
 				case '+=':
 				case '-=':
@@ -643,8 +619,7 @@ int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask
 								break;
 						}
 
-						std::string s = std::to_string(i);
-						env.set(name, s);
+						env.set(name, i);
 					}
 					break;
 			}
@@ -654,11 +629,11 @@ int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask
 
 	int32_t i = evaluate_expression("Evaluate", std::move(tokens));
 
-	// todo -- format based on -h, -o, or -b flag.
 	if (output == 'h') {
 		fprintf(stdout, "0x%08x\n", i);
 		return 0;
 	}
+
 	if (output == 'b') {
 		std::string tmp("0b");
 
@@ -670,11 +645,13 @@ int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask
 		fputs(tmp.c_str(), stdout);
 		return 0;
 	}
+
 	if (output == 'o') {
 		// octal.
 		fprintf(stdout, "0%o\n", i);
 		return 0;
 	}
+
 	fprintf(stdout, "%d\n", i);
 	return 0;
 }
