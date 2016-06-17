@@ -117,6 +117,12 @@ namespace {
 		write data;
 	}%%
 
+	/*
+	 * this is not quite right.  dev:std* is a reference to the current output device.
+	 * need to move this logic elsewhere.
+	 *
+	 */
+
 	%%{
 		machine dev;
 

@@ -193,6 +193,8 @@ bool phase2::special() {
 	case ELSE:
 	case ELSE_IF:
 	case EVALUATE:
+	case BREAK:
+	case CONTINUE:
 		return true;
 	default:
 		return false;

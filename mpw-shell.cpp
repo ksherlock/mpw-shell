@@ -31,6 +31,8 @@
 #include <paths.h>
 #include <atomic>
 
+#include "version.h"
+
 namespace fs = filesystem;
 
 
@@ -59,9 +61,9 @@ fs::path root() {
 void init(Environment &env) {
 
 	env.set("mpw", root());
-	env.set("status", std::string("0"));
-	env.set("exit", std::string("1")); // terminate script on error.
-	env.set("echo", std::string("1"));
+	env.set("status", 0);
+	env.set("exit", 1); // terminate script on error.
+	env.set("echo", 1);
 }
 
 
@@ -112,8 +114,8 @@ int read_make(phase1 &p1, phase2 &p2, Environment &env, const std::vector<std::s
 	int ok;
 
 
-	env.set("echo", "1");
-	env.set("exit", "1");
+	env.set("echo", 1);
+	env.set("exit", 1);
 
 	ok = pipe(out);
 	if (ok < 0) {
@@ -255,7 +257,7 @@ void help() {
 void define(Environment &env, const std::string &s) {
 
 	auto pos = s.find('=');
-	if (pos == s.npos) env.set(s, "1");
+	if (pos == s.npos) env.set(s, 1);
 	else {
 		std::string k = s.substr(0, pos);
 		std::string v = s.substr(pos+1);
@@ -479,7 +481,7 @@ int main(int argc, char **argv) {
 		}
 	};
 
-	if (!cflag) fprintf(stdout, "MPW Shell 0.1\n");
+	if (!cflag) fprintf(stdout, "MPW Shell " VERSION "\n");
 	e.startup(true);
 	read_file(p1, root() / "Startup");
 	e.startup(false);

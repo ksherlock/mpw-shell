@@ -19,8 +19,7 @@
 //MAXPATHLEN
 #include <sys/param.h>
 
-#define VERSION "0.1"
-
+#include "version.h"
 
 namespace ToolBox {
 	std::string MacToUnix(const std::string path);
@@ -847,6 +846,6 @@ int builtin_aboutbox(Environment &env, const std::vector<std::string> &tokens, c
 "|                                      |\n"
 "| (c) 2016 Kelvin W Sherlock           |\n"
 "+--------------------------------------+\n"
-	,VERSION);
+	, VERSION);
 	return 0;
 }
