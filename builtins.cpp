@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <iterator>
 
 #include <cstdio>
 #include <cctype>
@@ -57,6 +58,38 @@ namespace {
 
 		return out;
 	}
+
+	template <class T>
+	class offset_range {
+	public:
+
+		typedef typename T::iterator iterator;
+		typedef typename T::const_iterator const_iterator;
+
+		offset_range(T &t, size_t offset) : _t(t), _offset(offset)
+		{}
+		offset_range(const offset_range &) = default;
+		offset_range(offset_range &&) = default;
+		offset_range() = delete;
+
+		auto begin() { return std::next(_t.begin(), _offset); }
+		auto begin() const { return std::next(_t.begin(), _offset); }
+		auto cbegin() { return std::next(_t.begin(), _offset); }
+
+		auto end() { return _t.end(); }
+		auto end() const { return _t.end(); }
+		auto cend() const { return _t.cend(); }
+
+	private:
+		T &_t;
+		size_t _offset;
+	};
+
+	template<class T>
+	offset_range<T> make_offset_range(T &t, size_t offset) {
+		return offset_range<T>(t, offset);
+	}
+
 
 }
 
@@ -136,12 +169,11 @@ int builtin_shift(Environment &env, const std::vector<std::string> &tokens, cons
 
 
 int builtin_unset(Environment &env, const std::vector<std::string> &tokens, const fdmask &) {
-	for (auto iter = tokens.begin() + 1; iter != tokens.end(); ++iter) {
 
-		const std::string &name = *iter;
-
-		env.unset(name);
+	for (const auto &s : make_offset_range(tokens, 1)) {
+		env.unset(s);
 	}
+
 	// unset [no arg] removes ALL variables
 	if (tokens.size() == 1) {
 		env.unset();
@@ -295,9 +327,7 @@ int builtin_echo(Environment &env, const std::vector<std::string> &tokens, const
 	bool space = false;
 	bool n = false;
 
-	for (auto iter = tokens.begin() + 1; iter != tokens.end(); ++iter) {
-
-		const std::string &s = *iter;
+	for (const auto &s : make_offset_range(tokens, 1)) {
 		if (s == "-n" || s == "-N") {
 			n = true;
 			continue;
@@ -320,9 +350,7 @@ int builtin_quote(Environment &env, const std::vector<std::string> &tokens, cons
 	bool space = false;
 	bool n = false;
 
-	for (auto iter = tokens.begin() + 1; iter != tokens.end(); ++iter) {
-
-		std::string s = *iter;
+	for (const auto &s : make_offset_range(tokens, 1)) {
 		if (s == "-n" || s == "-N") {
 			n = true;
 			continue;
@@ -330,8 +358,7 @@ int builtin_quote(Environment &env, const std::vector<std::string> &tokens, cons
 		if (space) {
 			fputs(" ", stdout);
 		}
-		s = quote(std::move(s));
-		fputs(s.c_str(), stdout);
+		fputs(quote(s).c_str(), stdout);
 		space = true;
 	}
 	if (!n) fputs("\n", stdout);
