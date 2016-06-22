@@ -318,7 +318,60 @@ int builtin_unexport(Environment &env, const std::vector<std::string> &tokens, c
 	return export_common(env, false, tokens, fds);
 }
 
+int builtin_alias(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
 
+	// alias -> lists all aliases
+	// alias name -> list single alias
+	// alias name parms... -> add a new alias.
+
+	if (tokens.size() == 1) {
+		for (const auto &p : env.aliases()) {
+			fprintf(stdout, "Alias %s %s\n", quote(p.first).c_str(), quote(p.second).c_str());
+		}
+		return 0;
+	}
+
+	std::string name = tokens[1];
+	if (tokens.size() == 2) {
+		const auto as = env.find_alias(name);
+		if (as.empty()) {
+			fprintf(stderr, "### Alias - No alias exists for %s\n", quote(name).c_str());
+			return 1;
+		}
+		fprintf(stdout, "Alias %s %s\n", quote(name).c_str(), quote(as).c_str());
+		return 0;
+	}		
+
+	std::string as;
+	for (const auto &s : make_offset_range(tokens, 2)) {
+		as += s;
+		as.push_back(' ');
+	}
+	as.pop_back();
+
+	// add/remove it to the alias table...
+
+	if (as.empty()) {
+		env.remove_alias(name);
+	}	
+	else {
+		env.add_alias(std::move(name), std::move(as));
+	}
+	return 0;
+}
+
+int builtin_unalias(Environment &env, const std::vector<std::string> &tokens, const fdmask &) {
+	// unalias -> remove all aliases.
+	// unalias name -> remove single alias.
+	if (tokens.size() == 1) {
+		env.remove_alias();
+		return 0;
+	}
+	for (const auto &x : make_offset_range(tokens, 1)) {
+		env.remove_alias(x);
+	}
+	return 0;
+}
 
 int builtin_echo(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
 

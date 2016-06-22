@@ -21,6 +21,8 @@ int builtin_unexport(Environment &e, const std::vector<std::string> &, const fdm
 int builtin_unset(Environment &e, const std::vector<std::string> &, const fdmask &);
 int builtin_version(Environment &e, const std::vector<std::string> &, const fdmask &);
 int builtin_which(Environment &e, const std::vector<std::string> &, const fdmask &);
+int builtin_alias(Environment &e, const std::vector<std::string> &, const fdmask &);
+int builtin_unalias(Environment &e, const std::vector<std::string> &, const fdmask &);
 
 int builtin_evaluate(Environment &e, std::vector<token> &&, const fdmask &);
 

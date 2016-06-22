@@ -51,6 +51,10 @@ public:
 	typedef mapped_type::iterator iterator;
 	typedef mapped_type::const_iterator const_iterator;
 
+
+	typedef std::vector<std::pair<std::string, std::string>> alias_table_type;
+	typedef alias_table_type::const_iterator const_alias_iterator;
+
 	//const EnvironmentEntry & lookup(const std::string &s);
 
 	void set_argv(const std::string &argv0, const std::vector<std::string>& argv);
@@ -114,6 +118,17 @@ public:
 
 	constexpr bool loop() const noexcept { return _loop; }
 
+	const alias_table_type &aliases() const { return _alias_table; }
+
+	void add_alias(std::string &&name, std::string &&value);
+	const std::string &find_alias(const std::string &s) const;
+
+	void remove_alias(const std::string &name);
+	void remove_alias();
+
+	const_alias_iterator alias_begin() const { return _alias_table.begin(); }
+	const_alias_iterator alias_end() const { return _alias_table.end(); }
+
 private:
 	// magic variables.
 
@@ -132,8 +147,11 @@ private:
 	bool _passthrough = false;
 
 	void set_common(const std::string &, const std::string &, bool);
+	void rebuild_aliases();
 
 	std::unordered_map<std::string, EnvironmentEntry> _table;
+
+	alias_table_type _alias_table;
 };
 
 /*

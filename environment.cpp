@@ -190,3 +190,66 @@ namespace {
 	}
 
 
+	void Environment::rebuild_aliases() {
+		std::string as;
+		for (const auto &p : _alias_table) {
+			as += p.first;
+			as.push_back(',');
+		}
+		as.pop_back();
+		set_common("aliases", as, true);
+	}
+
+	void Environment::remove_alias() {
+		_alias_table.clear();
+		set_common("aliases", "", true);
+	}
+
+	void Environment::remove_alias(const std::string &name) {
+
+		std::string k(name);
+		lowercase(k);
+
+		auto iter = std::remove_if(_alias_table.begin(), _alias_table.end(), [&k](const auto &p){
+			return k == p.first;
+		});
+		_alias_table.erase(iter, _alias_table.end());
+		rebuild_aliases();
+	}
+
+	const std::string &Environment::find_alias(const std::string &name) const {
+
+		std::string k(name);
+		lowercase(k);
+
+		auto iter = std::find_if(_alias_table.begin(), _alias_table.end(), [&k](const auto &p){
+			return k == p.first;
+		});
+
+		if (iter == _alias_table.end()) {
+			static std::string empty;
+			return empty;
+		}
+		return iter->second;
+	}
+
+	void Environment::add_alias(std::string &&name, std::string &&value) {
+
+		lowercase(name);
+
+		auto iter = std::find_if(_alias_table.begin(), _alias_table.end(), [&name](const auto &p){
+			return name == p.first;
+		});
+
+		if (iter == _alias_table.end()) {
+			_alias_table.emplace_back(std::make_pair(std::move(name), std::move(value)));
+		} else {
+			iter->second = std::move(value);
+		}
+		rebuild_aliases();
+	}
+
+
+
+
+
