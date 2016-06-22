@@ -1,10 +1,11 @@
 #ifndef __environment_h__
 #define __environment_h__
 
+#include <map>
+#include <new>
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <new>
 #include <vector>
 
 
@@ -47,7 +48,7 @@ private:
 class Environment {
 
 public:
-	typedef std::unordered_map<std::string, EnvironmentEntry> mapped_type;
+	typedef std::map<std::string, EnvironmentEntry> mapped_type;
 	typedef mapped_type::iterator iterator;
 	typedef mapped_type::const_iterator const_iterator;
 
@@ -149,7 +150,7 @@ private:
 	void set_common(const std::string &, const std::string &, bool);
 	void rebuild_aliases();
 
-	std::unordered_map<std::string, EnvironmentEntry> _table;
+	mapped_type _table;
 
 	alias_table_type _alias_table;
 };
