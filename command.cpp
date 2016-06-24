@@ -142,21 +142,21 @@ void launch_mpw(const Environment &env, const std::vector<std::string> &argv, co
 	cargv.push_back(nullptr);
 
 
-		// export environment...
+	// export environment...
 
-		for (const auto &kv : env) {
-			if (kv.second) { // exported
-				std::string name = "mpw$" + kv.first;
-				setenv(name.c_str(), kv.second.c_str(), 1);
-			}
+	for (const auto &kv : env) {
+		if (kv.second) { // exported
+			std::string name = "mpw$" + kv.first;
+			setenv(name.c_str(), kv.second.c_str(), 1);
 		}
+	}
 
-		// handle any indirection...
-		fds.dup();
+	// handle any indirection...
+	fds.dup();
 
-		execv(mpw_path().c_str(), cargv.data());
-		perror("execvp: ");
-		exit(EX_OSERR); // raise a signal?
+	execv(mpw_path().c_str(), cargv.data());
+	perror("execvp: ");
+	exit(EX_OSERR); // raise a signal?
 }
 
 namespace {
