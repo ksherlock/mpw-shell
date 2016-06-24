@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sysexits.h>
+#include <signal.h>
 #include <atomic>
 
 extern std::atomic<int> control_c;
@@ -124,7 +125,10 @@ fs::path which(const Environment &env, const std::string &name) {
 	return "";
 }
 
+
+
 void launch_mpw(const Environment &env, const std::vector<std::string> &argv, const fdmask &fds) {
+
 
 	std::vector<char *> cargv;
 	cargv.reserve(argv.size() + 3);
@@ -153,6 +157,24 @@ void launch_mpw(const Environment &env, const std::vector<std::string> &argv, co
 
 	// handle any indirection...
 	fds.dup();
+
+
+	// re-set all signal handlers.
+
+	/*
+	 * execv modifies handlers as such:
+	 * blocked -> blocked
+	 * ignored -> ignored
+	 * caught  -> default action
+	 */
+	struct sigaction sig_action;
+
+	sig_action.sa_handler = SIG_DFL;
+	sig_action.sa_flags = 0;
+	sigemptyset(&sig_action.sa_mask);
+	for (int i = 1; i < NSIG; ++i) {
+		sigaction(i, &sig_action, NULL);
+	}
 
 	execv(mpw_path().c_str(), cargv.data());
 	perror("execvp: ");
