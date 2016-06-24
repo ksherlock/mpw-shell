@@ -208,15 +208,19 @@ namespace {
 
 
 
-
-
-
 	int execute_external(const Environment &env, const std::vector<std::string> &argv, const fdmask &fds) {
-
-
 
 		int status;
 		int pid;
+
+		struct sigaction ign, intact, quitact;
+		sigset_t newsigblock, oldsigblock;
+
+		sigemptyset(&newsigblock);
+		sigaddset(&newsigblock, SIGCHLD);
+		sigaddset(&newsigblock, SIGINT);
+		sigaddset(&newsigblock, SIGQUIT);
+		sigprocmask(SIG_BLOCK, &newsigblock, &oldsigblock);
 
 
 		pid = fork();
@@ -225,13 +229,20 @@ namespace {
 			exit(EX_OSERR);
 		}
 
-
 		if (pid == 0) {
+			//sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
 			launch_mpw(env, argv, fds);
 		}
 
+		/* ignore int/quit while waiting on child */
+
+		memset(&ign, 0, sizeof(ign));
+		ign.sa_handler = SIG_IGN;
+		sigemptyset(&ign.sa_mask);
+		sigaction(SIGINT, &ign, &intact);
+		sigaction(SIGQUIT, &ign, &quitact);
+
 		for(;;) {
-			int status;
 			pid_t ok;
 			ok = waitpid(pid, &status, 0);
 			if (ok < 0) {
@@ -239,14 +250,23 @@ namespace {
 				perror("waitpid:");
 				exit(EX_OSERR);
 			}
-
-			if (WIFEXITED(status)) return WEXITSTATUS(status);
-			if (WIFSIGNALED(status)) return -9; // command-. user abort exits via -9.
-
-			fprintf(stderr, "waitpid - unexpected result\n");
-			exit(EX_OSERR);
+			break;
 		}
 
+		sigaction(SIGINT, &intact, NULL);
+		sigaction(SIGQUIT,  &quitact, NULL);
+		sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
+
+		if (WIFEXITED(status)) {
+			return WEXITSTATUS(status);
+		}
+
+		if (WIFSIGNALED(status)) {
+			return -9; // command-. user abort exits via -9.
+		}
+
+		fprintf(stderr, "waitpid - unexpected result\n");
+		exit(EX_OSERR);
 	}
 
 
