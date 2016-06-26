@@ -72,20 +72,33 @@
 
 		# ( evaluate (1+2) ) is lparen, eval, rparen.
 		# need to balance parens here and terminate a special token when it goes negative.
-
+		#
+		# counterpoint: '(
+		# echo (hello)  == echo "(hello)"
+		# echo ; (echo) == echo ; LPAREN echo RPAREN
+		# ( echo ( ) ==> error (needs second closing rparen )
+		# ( echo ())) --> error (MPW Shell  - Extra ) command. 
 
 		'(' => {
-			if (special()) {
+
+			// if type == 0, this is the start and LPAREN is a token.
+			// otherwise, LPAREN is a normal character (but is balanced)
+			classify();
+			if (type) {
 				pcount++;
 				scratch.push_back(fc);
 			} else {
+				// start of command.
 				flush();
 				parse(LPAREN, std::string(ts, te));
 			}
 		};
 
 		')' => {
-			if (special() && pcount-- > 0) scratch.push_back(fc);
+			if (pcount) {
+				scratch.push_back(fc);
+				--pcount;
+			}
 			else {			
 				flush();
 				scratch.push_back(fc);
@@ -181,6 +194,7 @@ void phase2::flush() {
 	}
 
 	type = 0;
+	pcount = 0;
 	scratch.clear();
 }
 
@@ -223,7 +237,7 @@ void phase2::process(const std::string &line) {
 	
 	if (line.empty()) { finish(); return; }
 
-	int pcount = 0; // special form parens cannot cross lines.
+	//int pcount = 0; // special form parens cannot cross lines.
 
 	int cs;
 	int act;

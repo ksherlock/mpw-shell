@@ -82,6 +82,7 @@ private:
 
 	std::string scratch;
 	int type = 0;
+	int pcount = 0;
 
 	pipe_function pipe_to;
 
