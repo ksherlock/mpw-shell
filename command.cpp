@@ -135,7 +135,7 @@ void launch_mpw(const Environment &env, const std::vector<std::string> &argv, co
 
 
 	cargv.push_back((char *)"mpw");
-	//cargv.push_back((char *)"--shell");
+	cargv.push_back((char *)"--shell");
 
 	unsigned offset = cargv.size();		
 
