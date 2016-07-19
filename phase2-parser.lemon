@@ -121,6 +121,15 @@ term(RV) ::= ERROR(C). {
 }
 */
 
+/*
+term(RV) ::= error RPAREN.
+term(RV) ::= error END.
+term(RV) ::= LPAREN error RPAREN.
+term(RV) ::= BEGIN error END.
+term(RV) ::= IF error END.
+term(RV) ::= LOOP error END.
+term(RV) ::= FOR error END.
+*/
 
 /* compound list ends with a separator.  paren command does not need the final separator */
 %type paren_list { command_ptr_vector }
