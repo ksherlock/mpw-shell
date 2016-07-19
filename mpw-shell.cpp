@@ -253,7 +253,19 @@ int interactive(Environment &env, phase1 &p, phase2& p2) {
 
 void help() {
 
+	#undef _
+	#define _(x) puts(x)
+
+	_("MPW Shell " VERSION " (" VERSION_DATE ")");
+	_("mpw-shell [option...]");
+	_("    -d name[=value]         # define variable name");
+	_("    -v                      # be verbose (echo = 1)");
+	_("    -h                      # display help information");
+	_("    -c string               # read commands from string");
+
+#undef _
 }
+
 void define(Environment &env, const std::string &s) {
 
 	auto pos = s.find('=');
