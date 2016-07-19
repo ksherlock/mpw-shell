@@ -54,19 +54,14 @@ macro(RAGEL_TARGET Name Input Output)
 endmacro()
 
 
-
-
-
-#add_custom_command(
-#	OUTPUT mpw-shell-read.cpp
-#	COMMAND ragel -p -G2 -o mpw-shell-read.cpp "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-read.rl"
-#	MAIN_DEPENDENCY mpw-shell-read.rl 
-#)
-
-RAGEL_TARGET(mpw-shell-read mpw-shell-read.rl mpw-shell-read.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(phase1 phase1.rl phase1.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(phase2 phase2.rl phase2.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(pathnames pathnames.rl pathnames.cpp COMPILE_FLAGS "-p -G2")
+RAGEL_TARGET(mpw-shell-token mpw-shell-token.rl mpw-shell-token.cpp COMPILE_FLAGS "-p -G2")
+RAGEL_TARGET(mpw-shell-expand mpw-shell-expand.rl mpw-shell-expand.cpp COMPILE_FLAGS "-p -G2")
+RAGEL_TARGET(mpw-shell-quote mpw-shell-quote.rl mpw-shell-quote.cpp COMPILE_FLAGS "-p -G2")
+RAGEL_TARGET(value value.rl value.cpp COMPILE_FLAGS "-p -G2")
+
 
 # need to copy all OUTPUT file to the build dir
 add_custom_command(
@@ -78,40 +73,7 @@ add_custom_command(
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_custom_command(
-	OUTPUT mpw-shell-expand.cpp
-	COMMAND ragel -p -G2 -o mpw-shell-expand.cpp "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-expand.rl"
-	MAIN_DEPENDENCY mpw-shell-expand.rl 
-)
 
-add_custom_command(
-	OUTPUT mpw-shell-token.cpp
-	COMMAND ragel -p -G2 -o mpw-shell-token.cpp "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-token.rl"
-	MAIN_DEPENDENCY mpw-shell-token.rl 
-)
-
-add_custom_command(
-	OUTPUT mpw-shell-command.cpp
-	COMMAND ragel -p -G2 -o mpw-shell-command.cpp "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-command.rl"
-	MAIN_DEPENDENCY mpw-shell-command.rl 
-)
-
-add_custom_command(
-	OUTPUT value.cpp
-	COMMAND ragel -p -G2 -o value.cpp "${CMAKE_CURRENT_SOURCE_DIR}/value.rl"
-	MAIN_DEPENDENCY value.rl 
-)
-
-
-
-add_custom_command(
-	OUTPUT mpw-shell-quote.cpp
-	COMMAND ragel -p -G2 -o mpw-shell-quote.cpp "${CMAKE_CURRENT_SOURCE_DIR}/mpw-shell-quote.rl"
-	MAIN_DEPENDENCY mpw-shell-quote.rl 
-)
-
-
-# mpw-shell-execute.cpp mpw-shell-builtins.cpp mpw-shell-read.cpp
 add_executable(mpw-shell mpw-shell.cpp  mpw-shell-token.cpp mpw-shell-expand.cpp 
 	mpw-shell-parser.cpp value.cpp mpw-shell-quote.cpp 
 	phase1.cpp phase2.cpp phase2-parser.cpp command.cpp environment.cpp builtins.cpp 
