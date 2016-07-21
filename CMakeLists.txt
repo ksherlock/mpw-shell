@@ -78,6 +78,7 @@ add_executable(mpw-shell mpw-shell.cpp  mpw-shell-token.cpp mpw-shell-expand.cpp
 	mpw-shell-parser.cpp value.cpp mpw-shell-quote.cpp 
 	phase1.cpp phase2.cpp phase2-parser.cpp command.cpp environment.cpp builtins.cpp 
 	pathnames.cpp
+	macroman.cpp
 	cxx/mapped_file.cpp
 	cxx/filesystem.cpp
 	cxx/path.cpp

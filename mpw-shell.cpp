@@ -181,7 +181,9 @@ void control_c_handler(int signal, siginfo_t *sinfo, void *context) {
 	//fprintf(stderr, "interrupt!\n");
 }
 
-int interactive(Environment &env, phase1 &p, phase2& p2) {
+std::string utf8_to_macroman(const std::string &s);
+
+int interactive(Environment &env, phase1 &p1, phase2& p2) {
 
 	std::string history_file = root();
 	history_file += ".history";
@@ -198,15 +200,17 @@ int interactive(Environment &env, phase1 &p, phase2& p2) {
 
 	sigaction(SIGINT, &act, &old_act);
 
+
+
 	for(;;) {
 		const char *prompt = "# ";
-		if (p2.continuation()) prompt = "> ";
+		if (p1.continuation() || p2.continuation()) prompt = "> ";
 		char *cp = readline(prompt);
 		if (!cp) {
 			if (control_c) {
 				control_c = 0;
 				fprintf(stdout, "\n");
-				p.abort();
+				p1.abort();
 				p2.abort();
 				env.status(-9, false);
 				continue;
@@ -217,29 +221,32 @@ int interactive(Environment &env, phase1 &p, phase2& p2) {
 		std::string s(cp);
 		free(cp);
 
-		if (s.empty()) continue;
+		//if (s.empty()) continue;
 
 		// don't add if same as previous entry.
-		HIST_ENTRY *he = history_get(history_length);
-		if (he == nullptr || s != he->line)
-				add_history(s.c_str());
-
+		if (!s.empty()) {
+			HIST_ENTRY *he = history_get(history_length);
+			if (he == nullptr || s != he->line)
+					add_history(s.c_str());
+		}
+		// only if utf8....
+		s = utf8_to_macroman(s);
 		s.push_back('\n');
 		try {
-			p.process(s);
+			p1.process(s);
 
 		} catch(std::exception &ex) {
 			fprintf(stderr, "%s\n", ex.what());
-			p.reset();
+			p1.reset();
 		}
 
 	}
 
 	try {
-		p.finish();
+		p1.finish();
 	} catch(std::exception &ex) {
 		fprintf(stderr, "%s\n", ex.what());
-		p.reset();
+		p1.reset();
 	}
 
 	sigaction(SIGINT, &old_act, nullptr);

@@ -37,6 +37,7 @@ public:
 	}
 
 
+	bool continuation() const { return multiline; }
 
 private:
 
