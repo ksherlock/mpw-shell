@@ -10,7 +10,7 @@ class phase1 {
 public:
 	typedef std::function<void(std::string &&)> pipe_function;
 
-	phase1();
+	phase1() = default;
 
 	void process(const unsigned char *begin, const unsigned char *end, bool final = false);
 
@@ -18,11 +18,12 @@ public:
 		process((const unsigned char *)begin, (const unsigned char *)end, final);
 	}
 
-	void process(const std::string &s, bool final = false) { process(s.data(), s.data() + s.size(), final); }
+	void process(const std::string &s, bool final = false);// { process(s.data(), s.data() + s.size(), final); }
 
-	void finish() { const char *tmp = "\n"; process(tmp, tmp+1, true); }
+	void finish();// { const char *tmp = "\n"; process(tmp, tmp+1, true); }
 
 	void reset();
+	void abort() { reset(); }
 
 
 	phase1 &operator >>= (pipe_function f) { pipe_to = f; return *this; }
@@ -35,14 +36,18 @@ public:
 		return *this;
 	}
 
-	void abort() { reset(); }
 
 
 private:
+
+	int process(unsigned char, int);
+	void flush();
+
 	std::string scratch;
 	pipe_function pipe_to;
 	int line = 1;
 	int cs = 0;
+	bool multiline = false;
 };
 
 #endif

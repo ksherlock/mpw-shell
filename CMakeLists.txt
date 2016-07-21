@@ -54,7 +54,7 @@ macro(RAGEL_TARGET Name Input Output)
 endmacro()
 
 
-RAGEL_TARGET(phase1 phase1.rl phase1.cpp COMPILE_FLAGS "-p -G2")
+#RAGEL_TARGET(phase1 phase1.rl phase1.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(phase2 phase2.rl phase2.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(pathnames pathnames.rl pathnames.cpp COMPILE_FLAGS "-p -G2")
 RAGEL_TARGET(mpw-shell-token mpw-shell-token.rl mpw-shell-token.cpp COMPILE_FLAGS "-p -G2")
