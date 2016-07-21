@@ -258,10 +258,11 @@ void help() {
 
 	_("MPW Shell " VERSION " (" VERSION_DATE ")");
 	_("mpw-shell [option...]");
-	_("    -d name[=value]         # define variable name");
-	_("    -v                      # be verbose (echo = 1)");
-	_("    -h                      # display help information");
 	_("    -c string               # read commands from string");
+	_("    -d name[=value]         # define variable name");
+	_("    -f                      # don't load MPW:Startup file");
+	_("    -h                      # display help information");
+	_("    -v                      # be verbose (echo = 1)");
 
 #undef _
 }
@@ -425,6 +426,8 @@ fs::path mpw_path() {
 
 int main(int argc, char **argv) {
 
+	bool fflag = false;
+
 	mpw_path();
 
 	std::string self = basename(argv[0]);
@@ -437,7 +440,7 @@ int main(int argc, char **argv) {
 	const char *cflag = nullptr;
 
 	int c;
-	while ((c = getopt(argc, argv, "c:D:v:h")) != -1) {
+	while ((c = getopt(argc, argv, "c:D:v:hf")) != -1) {
 		switch (c) {
 			case 'c':
 				// -c command
@@ -450,6 +453,9 @@ int main(int argc, char **argv) {
 			case 'v':
 				// -v verbose
 				e.set("echo", "1");
+				break;
+			case 'f':
+				fflag = true;
 				break;
 			case 'h':
 				help();
@@ -494,9 +500,11 @@ int main(int argc, char **argv) {
 	};
 
 	if (!cflag) fprintf(stdout, "MPW Shell " VERSION "\n");
-	e.startup(true);
-	read_file(p1, root() / "Startup");
-	e.startup(false);
+	if (!fflag) {
+		e.startup(true);
+		read_file(p1, root() / "Startup");
+		e.startup(false);
+	}
 
 	if (cflag) {
 		std::string s(cflag);
