@@ -13,6 +13,8 @@
 #include "mpw-shell.h"
 #include "fdset.h"
 
+#include "macroman.h"
+
 #include "phase1.h"
 #include "phase2.h"
 #include "command.h"
@@ -35,6 +37,7 @@
 
 namespace fs = filesystem;
 
+bool utf8 = false;
 
 fs::path root() {
 
@@ -142,6 +145,7 @@ int read_make(phase1 &p1, phase2 &p2, Environment &env, const std::vector<std::s
 	close(out[1]);
 	int rv = read_fd(p1, out[0]);
 	close(out[0]);
+	p1.finish();
 	p2.finish();
 
 	// check for make errors.
@@ -181,7 +185,6 @@ void control_c_handler(int signal, siginfo_t *sinfo, void *context) {
 	//fprintf(stderr, "interrupt!\n");
 }
 
-std::string utf8_to_macroman(const std::string &s);
 
 int interactive(Environment &env, phase1 &p1, phase2& p2) {
 
@@ -229,8 +232,9 @@ int interactive(Environment &env, phase1 &p1, phase2& p2) {
 			if (he == nullptr || s != he->line)
 					add_history(s.c_str());
 		}
-		// only if utf8....
-		s = utf8_to_macroman(s);
+		if (utf8)
+			s = utf8_to_macroman(s);
+
 		s.push_back('\n');
 		try {
 			p1.process(s);
@@ -431,9 +435,30 @@ fs::path mpw_path() {
 	return path;
 }
 
+void init_locale() {
+
+	/*
+	 * libedit assumes utf-8 if locale is C.
+	 * MacRoman is en_US.  utf-8 is en_US.UTF8.
+	 */
+
+
+	const char *lang = getenv("LANG");
+	/*
+	if (lang && !strcmp(lang, "en_US")) {
+		setlocale(LC_ALL, "POSIX");
+	}
+	*/
+	utf8 = false;
+	if (lang && strcasestr(lang, ".UTF-8")) {
+		utf8 = true;
+	}
+}
+
 int main(int argc, char **argv) {
 
-	bool fflag = false;
+
+	init_locale();
 
 	mpw_path();
 
@@ -445,6 +470,7 @@ int main(int argc, char **argv) {
 	init(e);
 
 	const char *cflag = nullptr;
+	bool fflag = false;
 
 	int c;
 	while ((c = getopt(argc, argv, "c:D:vhf")) != -1) {
