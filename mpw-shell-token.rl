@@ -25,43 +25,9 @@
 		scratch.push_back(fc);
 	}
 
-#	vstring_quoted =
-#		[{]
-#		( (any-nl-[}]) ${ var.push_back(fc); } )*
-#		[}]
-#		%{
-#			auto iter = Environment.find(var);
-#			if (iter != Environment.end() {
-#				scratch.append(iter->second);
-#			})
-#			var.clear();
-#		}
-#		$err{
-#			throw std::runtime_error("### MPW Shell - '{ must occur in pairs.");
-#		}
-#	;
-
-#	vstring_unqoted =
-#		[{]
-#		( (any-nl-[}]) ${ var.push_back(fc); } )*
-#		[}]
-#		%{
-#			auto iter = Environment.find(var);
-#			if (iter != Environment.end() {
-#				// re-parse.  ", ', { are not
-#				// special.  all others are treated normally.
-#			})
-#			var.clear();
-#		}
-#		$err{
-#			throw std::runtime_error("### MPW Shell - '{ must occur in pairs.");
-#		}
-#	;
-
+	schar = [^'] $push_back;
 	sstring = 
-		[']
-		( (any-nl-[']) $push_back )*
-		[']
+		['] schar** [']
 		${ quoted = true; }
 		$err{
 			throw std::runtime_error("### MPW Shell - 's must occur in pairs.");
@@ -71,25 +37,17 @@
 	escape_seq =
 		escape
 		(
-			'f' ${scratch.push_back('\f'); }
-			|
-			'n' ${scratch.push_back('\n'); /* \r ? */ }
-			|
-			't' ${scratch.push_back('\t'); }
-			|
-			any-[fnt] $push_back
+			  'f' ${scratch.push_back('\f'); }
+			| 'n' ${scratch.push_back('\n'); /* \r ? */ }
+			| 't' ${scratch.push_back('\t'); }
+			| [^fnt] $push_back
 		)
 	;
 
 	# double-quoted string.
+	dchar = escape_seq | (any - escape - ["]) $push_back;
 	dstring =
-		["]
-		(
-			escape_seq
-			|
-			(any-escape-["]) $push_back
-		)*
-		["]
+		["] dchar** ["]
 		${ quoted = true; }
 		$err{
 			throw std::runtime_error("### MPW Shell - \"s must occur in pairs.");
@@ -110,6 +68,7 @@
 
 			'<'  %push_token => { tokens.emplace_back("<", '<'); };
 
+			# these should be eval-only too...
 			'||' %push_token => { tokens.emplace_back("||", '||'); };
 			'|'  %push_token => { tokens.emplace_back("|", '|'); };
 
@@ -180,8 +139,7 @@
 			dstring ;
 			escape_seq;
 
-			(any-escape-['"]) => push_back; # { scratch.append(ts, te); };
-			#(any-escape-ws-[>'"])+ => { scratch.append(ts, te); };
+			(any-escape-['"]) => push_back;
 		*|
 		;
 }%%
