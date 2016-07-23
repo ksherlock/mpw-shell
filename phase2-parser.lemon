@@ -110,15 +110,20 @@ term(RV) ::= paren_command(C). { RV = std::move(C); }
 term(RV) ::= loop_command(C).  { RV = std::move(C); }
 term(RV) ::= for_command(C).   { RV = std::move(C); }
 
+
+/* lexer error (mismatched quotes, etc) */
+term(RV) ::= ERROR(C). {
+	RV = std::make_unique<error_command>(@C, std::move(C));
+}
+
+
 /*
  * fall back to an end error.  w/o fallback, it will cause a parse conflict.
  */
  /*
 %fallback ERROR END RPAREN ELSE ELSE_IF.
 
-term(RV) ::= ERROR(C). {
-	RV = std::make_unique<error_command>(@C, std::move(C));
-}
+
 */
 
 /*

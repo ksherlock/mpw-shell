@@ -22,7 +22,7 @@ struct command {
 	{}
 
 	virtual bool terminal() const noexcept {
-		return type == EVALUATE || type == COMMAND || type == BREAK || type == CONTINUE;
+		return type == EVALUATE || type == COMMAND || type == BREAK || type == CONTINUE || type == ERROR;
 	}
 
 	int type = 0;

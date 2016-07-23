@@ -446,6 +446,11 @@ int error_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 
 	if (control_c) throw execution_of_input_terminated();
 
+	if (type == ERROR) {
+		fprintf(stderr, "%s\n", text.c_str());
+		return e.status(-3);
+	}
+
 	std::string s = expand_vars(text, e);
 
 	e.echo("%s", s.c_str());
