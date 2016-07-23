@@ -447,7 +447,7 @@ int main(int argc, char **argv) {
 	const char *cflag = nullptr;
 
 	int c;
-	while ((c = getopt(argc, argv, "c:D:v:hf")) != -1) {
+	while ((c = getopt(argc, argv, "c:D:vhf")) != -1) {
 		switch (c) {
 			case 'c':
 				// -c command
