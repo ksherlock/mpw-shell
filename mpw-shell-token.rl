@@ -68,14 +68,24 @@
 
 			'<'  %push_token => { tokens.emplace_back("<", '<'); };
 
-			# these should be eval-only too...
-			'||' %push_token => { tokens.emplace_back("||", '||'); };
-			'|'  %push_token => { tokens.emplace_back("|", '|'); };
+			# macroman ∑, ∑∑
+			0xb7 0xb7 %push_token => { tokens.emplace_back("\xb7\xb7", 0xb7b7); };
+			0xb7      %push_token => { tokens.emplace_back("\xb7", 0xb7); };
 
-			'&&'
-				 %push_token => { tokens.emplace_back("&&", '&&'); };
+			# macroman ≥,  ≥≥ 
+			0xb3 0xb3 %push_token => { tokens.emplace_back("\xb3\xb3", 0xb3b3); };
+			0xb3      %push_token => { tokens.emplace_back("\xb3", 0xb3); };
 
 			# eval-only.
+
+			'||' when eval
+				 %push_token => { tokens.emplace_back("||", '||'); };
+			'|'  when eval
+				 %push_token => { tokens.emplace_back("|", '|'); };
+
+			'&&' when eval
+				 %push_token => { tokens.emplace_back("&&", '&&'); };
+
 
 			'('  when eval
 				 %push_token => { tokens.emplace_back("(", '('); };
