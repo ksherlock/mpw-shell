@@ -7,31 +7,19 @@ bool must_quote(const std::string &s){
 	alphtype unsigned char;
 
 	quotable = (
-		[ \t\r\n]
-		|
-		0x00
-		|
-		[0x80-0xff]
-		|
-		[+#;&|()'"/\\{}`?*<>]
-		|
-		'-'
-		|
-		'['
-		|
-		']'
+		  [ \t\r\n]
+		| 0x00
+		| [0x80-0xff]
+		| [+#;&|()'"/\\{}`?*<>]
+		| '-'
+		| '['
+		| ']'
 	);
 
 	#simpler just to say what's ok.
 	normal = [A-Za-z0-9_.:];
 
-	main := 
-		(
-		normal
-		|
-		(any-normal) ${return true;}
-		)*
-	;
+	main := normal*;
 }%%
 
 	%%write data;
@@ -43,7 +31,8 @@ bool must_quote(const std::string &s){
 
 	%%write init;
 	%%write exec;
-	return false;
+
+	return cs == must_quote_error;
 }
 
 #if 0
