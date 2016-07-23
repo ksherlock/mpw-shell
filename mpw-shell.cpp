@@ -371,11 +371,10 @@ int make(int argc, char **argv) {
 				ptr->execute(e, fds);
 			} catch (execution_of_input_terminated &ex) {
 				control_c = 0;
-				if (!(ptr->terminal() && ++iter == v.end())) {
-					fprintf(stderr, "%s\n", ex.what());
-				}
+				fprintf(stderr, "%s\n", ex.what());
+				if (e.exit()) 
+					exit(ex.status());
 				e.status(ex.status(), false);
-				return;
 			}
 		}
 	};
