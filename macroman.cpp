@@ -3,29 +3,64 @@
 #include <string>
 #include <algorithm>
 #include <stdint.h>
+#include <array>
+
+
+struct mu_pair {
+	uint16_t unicode;
+	uint8_t macroman;
+
+	constexpr bool operator<(const mu_pair &rhs) const noexcept {
+		return unicode < rhs.unicode;
+	}
+
+	constexpr bool operator==(const mu_pair &rhs) const noexcept {
+		return unicode == rhs.unicode;
+	}
+
+	constexpr bool operator<(uint16_t c) const noexcept {
+		return unicode < c;
+	}
+
+	constexpr bool operator==(uint16_t c) const noexcept {
+		return unicode == c;
+	}
+};
 
 uint8_t unicode_to_macroman(uint16_t c){
-	
+
+
+	static std::array< mu_pair, 0x80> table = {{
+#undef _
+#define _(macroman, unicode, comment)  mu_pair{ unicode, macroman } ,
+#include "macroman.x"
+#undef _
+	}};
+
+	static bool init = false;
 
 	if (c < 0x80) return c;
 
-#undef _
-#define _(macroman,unicode,comment) if (c == unicode) return macroman;
-#include "macroman.x"
+	if (!init) {
+		init = true;
+		std::sort(table.begin(), table.end());
+		init = true;
+	}
 
-#undef _
+	auto iter = std::lower_bound(table.begin(), table.end(), c);
+	if (iter != table.end() && iter->unicode == c) return iter->macroman;
 	return 0;
 }
 
 
 uint16_t macroman_to_unicode(uint8_t c) {
 
-	static uint16_t table[] = {
+	static std::array<uint16_t, 0x80> table = {{
 #undef _
 #define _(macroman,unicode,comment) unicode ,
 #include "macroman.x"
 #undef _
-	};
+	}};
 
 	if (c < 0x80) return c;
 	return table[c - 0x80];
