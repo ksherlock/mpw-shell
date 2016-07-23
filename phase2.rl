@@ -14,183 +14,188 @@
 
 	action not_special { !special() }
 
+	action parse_ws {
+		if (scratch.empty()) fgoto main;
+	}
+	action parse_semi {
+		flush();
+		parse(SEMI, ";");
+		fgoto main;
+	}
+
+
+	action parse_amp_amp {
+		if (!special()) {
+			scratch.pop_back();
+			flush();
+			parse(AMP_AMP, "&&");
+			fgoto main;
+		}
+	}
+
+	action parse_pipe_pipe {
+		if (!special()) {
+			scratch.pop_back();
+			flush();
+			parse(PIPE_PIPE, "||");
+			fgoto main;
+		}
+	}
+
+	action parse_lparen {
+		if (scratch.empty()) {
+			parse(LPAREN, "(");
+			fgoto main;
+		}
+		pcount++;
+	}
+
+	action parse_rparen {
+		if (pcount <= 0) {
+			flush();
+			parse(RPAREN, ")");
+			fgoto main;
+		}
+		--pcount;
+	}
 
 	escape = 0xb6;
 	ws = [ \t];
 
 
-	escape_seq =
-		escape any
-	;
+	escape_seq = escape any ;
 
-	sstring = 
-		[']
-		( (any-[']) )*
-		[']
-		$err{
-			throw std::runtime_error("### MPW Shell - 's must occur in pairs.");
-		}
-	;
+	schar = [^'];
+	sstring = ['] schar** ['] ;
 
-	vstring = 
-		[{]
-		( (any-[}]) )*
-		[}]
-		$err{
-			throw std::runtime_error("### MPW Shell - {s must occur in pairs.");
-		}
-	;
+	vchar = [^}];
+	vstring = [{] vchar** [}] ;
 
 	# double-quoted string.
-	dstring =
-		["]
-		(
-			escape_seq
-			|
-			(any-escape-["])
-		)*
-		["]
-		$err{
-			throw std::runtime_error("### MPW Shell - \"s must occur in pairs.");
-		}
-	;
+	dchar = escape_seq | (any - escape - ["]) ; 
+	dstring = ["] dchar** ["];
 
 
+	echar = escape_seq | (any - escape - [`]) ; 
+	estring1 = '`' echar** '`';
+	estring2 = '``' echar** '``';
+	estring = estring1 | estring2 ;
 
-	main := |*
+	# default action is to push character into scratch.
+	# fgoto main inhibits.
+	main := (
+		  ws $parse_ws
+		| ';' $parse_semi
+		| '(' $parse_lparen
+		| ')' $parse_rparen
+		| '|' '|' $parse_pipe_pipe
+		| '&' '&' $parse_amp_amp
+		| escape_seq
+		| sstring
+		| dstring
+		| vstring
+		| estring
+		| any
+	)** ${ scratch.push_back(fc); };
 
-		'||' when not_special => {
-				flush();
-				parse(PIPE_PIPE, std::string(ts, te));
-		};
-
-		'&&' when not_special => {
-				flush();
-				parse(AMP_AMP, std::string(ts, te));
-		};
-
-
-		# ( evaluate (1+2) ) is lparen, eval, rparen.
-		# need to balance parens here and terminate a special token when it goes negative.
-		#
-		# counterpoint: '(
-		# echo (hello)  == echo "(hello)"
-		# echo ; (echo) == echo ; LPAREN echo RPAREN
-		# ( echo ( ) ==> error (needs second closing rparen )
-		# ( echo ())) --> error (MPW Shell  - Extra ) command. 
-
-		'(' => {
-
-			// if type == 0, this is the start and LPAREN is a token.
-			// otherwise, LPAREN is a normal character (but is balanced)
-			classify();
-			if (type) {
-				pcount++;
-				scratch.push_back(fc);
-			} else {
-				// start of command.
-				flush();
-				parse(LPAREN, std::string(ts, te));
-			}
-		};
-
-		')' => {
-			if (pcount) {
-				scratch.push_back(fc);
-				--pcount;
-			}
-			else {			
-				flush();
-				scratch.push_back(fc);
-				type = RPAREN;
-			}
-		};
-
-
-		';' => { flush(); parse(SEMI, ";"); };
-
-		ws  => { if (!scratch.empty()) scratch.push_back(fc); };
-
-		sstring => { scratch.append(ts, te); };
-		dstring => { scratch.append(ts, te); };
-		vstring => { scratch.append(ts, te); };
-		escape_seq => { scratch.append(ts, te); };
-
-
-		(any-escape-['"{]) => { scratch.push_back(fc); };
-	*|;
 }%%
 
 
 %%{
-	machine classify;
+	machine argv0;	
 	alphtype unsigned char;
 
+	action push { argv0.push_back(tolower(fc)); }
+
+
+	escape = 0xb6;
 	ws = [ \t];
 
-	IF = /if/i;
-	ELSE = /else/i;
-	END = /end/i;
-	BEGIN = /begin/i;
-	EVALUATE = /evaluate/i;
-	LOOP = /loop/i;
-	FOR = /for/i;
-	BREAK = /break/i;
-	CONTINUE = /continue/i;
+
+	# ` and { not supported here.
 
 
-	main := |*
-		IF %eof{ type = IF; return; };
-		IF ws => { type = IF; return; };
+	# hmmm ... only push the converted char  - escape n = \n, for example.
+	esc_seq =
+		escape (
+			'f' ${argv0.push_back('\f'); } |
+			'n' ${argv0.push_back('\n'); } |
+			't' ${argv0.push_back('\t'); } |
+			[^fnt] $push
+		);
 
-		ELSE %eof{ type = ELSE; return; };
-		ELSE ws => { type = ELSE; return; };
+	schar = [^'] $push;
+	sstring = ['] schar** ['];
 
-		#ELSE ws+ IF %eof{ type = ELSE_IF; return; };
-		#ELSE ws+ IF ws => { type = ELSE_IF; return; };
+	dchar = esc_seq | (any-escape-["]) $push;
+	dstring = ["] dchar** ["];
 
-		EVALUATE %eof{ type = EVALUATE; return; };
-		EVALUATE ws => { type = EVALUATE; return; };
-
-		END %eof{ type = END; return; };
-		END ws => { type = END; return; };
-
-		BEGIN %eof{ type = BEGIN; return; };
-		BEGIN ws => { type = BEGIN; return; };
-
-		LOOP %eof{ type = LOOP; return; };
-		LOOP ws => { type = LOOP; return; };
-
-		FOR %eof{ type = FOR; return; };
-		FOR ws => { type = FOR; return; };
-
-		BREAK %eof{ type = BREAK; return; };
-		BREAK ws => { type = BREAK; return; };
-
-		CONTINUE %eof{ type = CONTINUE; return; };
-		CONTINUE ws => { type = CONTINUE; return; };
-
-
-		'(' => { type = LPAREN; return; };
-	*|;
+	main := (
+		  ws ${ fbreak; }
+		| [{`] ${ argv0.clear(); fbreak; }
+		| sstring
+		| dstring
+		| esc_seq
+		| (any-escape-['"]) $push
+	)**;
 
 }%%
 
+
+int phase2::classify() {
+
+	%%machine argv0;
+	%%write data;
+	
+	if (type) return type;
+	std::string argv0;
+
+	const unsigned char *p = (const unsigned char *)scratch.data();
+	const unsigned char *pe = p + scratch.size();
+	int cs;
+
+	type = COMMAND;
+
+	%%write init;
+	%%write exec;
+
+//	fprintf(stderr, "%s -> %s\n", scratch.c_str(), argv0.c_str());
+#undef _
+#define _(a,b) if (argv0 == a) { type = b; return type; }
+
+	// expand aliases?
+
+	_("begin", BEGIN)
+	_("break", BREAK)
+	_("continue", CONTINUE)
+	_("else", ELSE)
+	_("end", END)
+	_("evaluate", EVALUATE)
+	_("for", FOR)
+	_("if", IF)
+	_("loop", LOOP)
+
+#undef _
+	return type;
+}
+
+
 namespace {
-	%% machine classify;
+	%% machine argv0;
 	%% write data;
+
 	%% machine main;
 	%% write data;
 }
 
 void phase2::flush() {
+	//fprintf(stderr, "flush: %s\n", scratch.c_str());
 	// remove white space...
 	while (!scratch.empty() && isspace(scratch.back())) scratch.pop_back();
 
 
 	if (!scratch.empty()) {
-		if (!type) classify();
-		parse(type, std::move(scratch));
+		parse(classify(), std::move(scratch));
 	}
 
 	type = 0;
@@ -200,9 +205,8 @@ void phase2::flush() {
 
 /* slightly wrong since whitespace is needed for it to be special. */
 bool phase2::special() {
-	if (!type) classify();
 
-	switch (type) {
+	switch (classify()) {
 	case IF:
 	case ELSE:
 	case ELSE_IF:
@@ -215,39 +219,22 @@ bool phase2::special() {
 	}
 }
 
-void phase2::classify() {
-	if (type) return;
-	if (scratch.empty()) return;
-
-	int cs;
-	int act;
-	const unsigned char *p = (const unsigned char *)scratch.data();
-	const unsigned char *pe = p + scratch.size();
-	const unsigned char *eof = pe;
-	const unsigned char *te, *ts;
-
-	type = COMMAND;
-
-	%% machine classify;
-	%% write init;
-	%% write exec;
-}
-
 void phase2::process(const std::string &line) {
 	
+	//fprintf(stderr, "-> %s\n", line.c_str());
+
+	// still needed?
 	if (line.empty()) { finish(); return; }
 
-	//int pcount = 0; // special form parens cannot cross lines.
 
 	int cs;
-	int act;
 	const unsigned char *p = (const unsigned char *)line.data();
 	const unsigned char *pe = p + line.size();
 	const unsigned char *eof = pe;
-	const unsigned char *te, *ts;
 
 	scratch.clear();
 	type = 0;
+	pcount = 0; // parenthesis balancing within command only.
 
 	%% machine main;
 	%% write init;

@@ -88,7 +88,7 @@ private:
 
 	void flush();
 	bool special();
-	void classify();
+	int classify();
 	void exec();
 
 
