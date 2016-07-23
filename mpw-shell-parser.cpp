@@ -104,7 +104,7 @@ void parse_tokens(std::vector<token> &&tokens, process &p) {
 				fd_bits = (1 << 1) + (1 << 2);
 				goto redir;
 
-			// ≥,  ≥≥  -- redirect stdout.
+			// ≥,  ≥≥  -- redirect stderr.
 			case 0xb3: // ≥
 				flags = O_WRONLY | O_CREAT | O_TRUNC;
 				fd_bits = 1 << 2;
