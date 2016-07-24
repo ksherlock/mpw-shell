@@ -191,6 +191,7 @@ namespace {
 	std::unordered_map<std::string, int (*)(Environment &, const std::vector<std::string> &, const fdmask &)> builtins = {
 		{"aboutbox", builtin_aboutbox},
 		{"alias", builtin_alias},
+		{"catenate", builtin_catenate},
 		{"directory", builtin_directory},
 		{"echo", builtin_echo},
 		{"exists", builtin_exists},

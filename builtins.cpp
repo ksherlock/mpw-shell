@@ -19,6 +19,7 @@
 
 //MAXPATHLEN
 #include <sys/param.h>
+#include <fcntl.h>
 
 #include "version.h"
 
@@ -818,6 +819,59 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 
 	fprintf(stderr, "### Which - Command \"%s\" was not found.\n", target.c_str());
 	return 2; // not found.
+}
+
+int cat_helper(int in, int out) {
+	static uint8_t buffer[4096];
+
+	for(;;) {
+		ssize_t rcount = read(in, buffer, sizeof(buffer));
+		if (rcount < 0) {
+			if (errno == EINTR) continue;
+			return 2;
+		}
+
+		if (rcount == 0) break;
+
+		for (;;) {
+			ssize_t wcount = write(out, buffer, rcount);
+			if (wcount < 0) {
+				if (errno == EINTR) continue;
+				return 2;	
+			}
+			if (wcount != rcount) return 2;
+			break;
+		}
+	}
+	return 0;
+}
+
+
+int builtin_catenate(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
+
+	if (tokens.size() == 1) {
+		int rv = cat_helper(stdin, stdout);
+		if (rv) fputs("### Catenate - I/O Error\n", stderr);
+		return rv;
+	}
+
+	for (const auto &s : make_offset_range(tokens, 1)) {
+
+		std::string path = ToolBox::MacToUnix(s);
+		int fd = open(path.c_str(), O_RDONLY);
+		if (fd < 0) {
+			fprintf(stderr, "### Catenate - Unable to open \"%s\".\n", path.c_str());
+			return 1;
+		}
+
+		int rv = cat_helper(fd, stdout);
+		close(fd);
+		if (rv) {
+			fputs("### Catenate - I/O Error\n", stderr);
+			return rv;
+		}
+	}
+	return 0;
 }
 
 int builtin_version(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
