@@ -33,12 +33,11 @@ namespace fs = filesystem;
 
 namespace {
 
-/*
 	std::string &lowercase(std::string &s) {
 		std::transform(s.begin(), s.end(), s.begin(), [](char c){ return std::tolower(c); });
 		return s;
 	}
-*/
+
 	// doesn't handle flag arguments but builtins don't have arguments.
 
 	template<class FX>
@@ -809,6 +808,38 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 			found = true;
 			fprintf(stdout, "%s\n", quote(p).c_str());
 			if (!a) break;
+		}
+
+	}
+
+	// check builtins...
+	if (!found || a) {
+
+		static const char *builtins[] = {
+			"aboutbox",
+			"alias",
+			"catenate",
+			"directory",
+			"echo",
+			"exists",
+			"export",
+			"parameters",
+			"quote",
+			"set",
+			"shift",
+			"unalias",
+			"unexport",
+			"unset",
+			"version",
+			"which",
+		};
+
+		lowercase(target);
+
+		auto iter = std::find(std::begin(builtins), std::end(builtins), target);
+		if (iter != std::end(builtins)) {
+			fprintf(stdout, "%s\n", *iter);
+			found = true;
 		}
 
 	}
