@@ -16,10 +16,10 @@ Supported features
 * ||
 * &&
 * redirection
+*  | "pipes" (via a temporary file. Presumably, that's what MPW did as well.)
 
 Not supported
 -------------
-* pipes (|)
 * subshells (`...`, ``...``)
 * text-editing commands (search forward/backward, regular expressions, et cetera)
 
