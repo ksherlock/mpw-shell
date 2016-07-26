@@ -114,7 +114,7 @@ std::string utf8_to_macroman(const std::string &s) {
 				//not utf8...
 			}
 			tmp = (tmp << 6) + (c & 0b00111111);
-			if(--cs == 0) {
+			if (--cs == 0) {
 				c = unicode_to_macroman(tmp);
 				if (c) rv.push_back(c);
 			}
