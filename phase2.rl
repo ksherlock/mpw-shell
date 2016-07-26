@@ -42,6 +42,25 @@
 		}
 	}
 
+	action parse_pipe_any {
+		if (!special()) {
+			scratch.pop_back();
+			flush();
+			parse(PIPE, "|");
+		}
+		fhold;
+		fgoto main;
+	}
+
+	action parse_pipe_eof {
+
+		if (!special()) {
+			scratch.pop_back();
+			flush();
+			parse(PIPE, "|");
+		}
+	}
+
 	action parse_lparen {
 		if (scratch.empty()) {
 			parse(LPAREN, "(");
@@ -88,6 +107,8 @@
 		| ';' $parse_semi
 		| '(' $parse_lparen
 		| ')' $parse_rparen
+		| '|' <eof(parse_pipe_eof)
+		| '|' [^|] $parse_pipe_any
 		| '|' '|' $parse_pipe_pipe
 		| '&' '&' $parse_amp_amp
 		| escape_seq

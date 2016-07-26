@@ -114,15 +114,13 @@ struct and_command : public binary_command {
 };
 
 
-#if 0
 struct pipe_command : public binary_command {
-	and_command(command_ptr &&a, command_ptr &&b) :
+	pipe_command(command_ptr &&a, command_ptr &&b) :
 		binary_command(PIPE, std::move(a), std::move(b)) 
 	{}
 
-	virtual int execute(Environment &e) final override;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
 };
-#endif
 
 
 struct vector_command : public command {

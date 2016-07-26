@@ -372,7 +372,7 @@ int break_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
 	env.echo("%s", s.c_str());
 	if (!env.loop()) {
-		fputs("MPW Shell - Break must be within for or loop.\n", stderr);
+		fputs("### MPW Shell - Break must be within for or loop.\n", stderr);
 		return env.status(-3, throwup);
 	}
 
@@ -394,7 +394,7 @@ int continue_command::execute(Environment &env, const fdmask &fds, bool throwup)
 
 	env.echo("%s", s.c_str());
 	if (!env.loop()) {
-		fputs("MPW Shell - Continue must be within for or loop.\n", stderr);
+		fputs("### MPW Shell - Continue must be within for or loop.\n", stderr);
 		return env.status(-3, throwup);
 	}
 
@@ -430,6 +430,13 @@ int and_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 	}
 
 	return rv;
+}
+
+
+int pipe_command::execute(Environment &e, const fdmask &fds, bool throwup) {
+	// not yet supported!
+	fputs( "### MPW Shell - Pipes are not yet supported.\n", stderr);
+	return e.status(1, throwup);
 }
 
 

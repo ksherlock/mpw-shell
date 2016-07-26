@@ -29,6 +29,9 @@ bool phase2_parser::continuation() const {
 		if (e.major == PIPE_PIPE) return true;
 		if (e.major == LOOP) return true;
 		if (e.major == FOR) return true;
+		if (e.major == PIPE) return true;
+		if (e.major == PIPE_PIPE) return true;
+		if (e.major == AMP_AMP) return true;
 	}
 	return false;
 }
@@ -92,11 +95,9 @@ command(RV) ::= command(L) AMP_AMP opt_nl command(R). {
 	RV = std::make_unique<and_command>(std::move(L), std::move(R));
 }
 
-/*
-command(RV) ::= command PIPE opt_nl command. {
+command(RV) ::= command(L) PIPE opt_nl command(R). {
 	RV = std::make_unique<pipe_command>(std::move(L), std::move(R));
 }
-*/
 
 command(RV) ::= term(T). { RV = std::move(T); }
 
