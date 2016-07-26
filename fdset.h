@@ -132,6 +132,10 @@ class fdset {
 		return fdmask(_fds);
 	}
 
+	void swap_in_out() {
+		std::swap(_fds[0], _fds[1]);
+	}
+
 	private:
 
 	void reset() {

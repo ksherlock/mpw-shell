@@ -417,11 +417,13 @@ int or_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 		if (rv == 0) return rv;
 	}
 
-	return e.status(rv);
+	return e.status(rv, throwup);
 }
 
 int and_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 
+	// mpw - false && true -> no exit
+	// mpw - true && false -> exit
 	int rv = 0;
 	for (auto &c : children) {
 		if (!c) continue;
@@ -429,16 +431,43 @@ int and_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 		if (rv != 0) return rv;
 	}
 
-	return rv;
+	return e.status(rv, throwup);
 }
 
 
 int pipe_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 	// not yet supported!
-	fputs( "### MPW Shell - Pipes are not yet supported.\n", stderr);
-	return e.status(1, throwup);
-}
+	//fputs( "### MPW Shell - Pipes are not yet supported.\n", stderr);
+	//return e.status(1, throwup);
 
+	if (children[0] && children[1]) {
+		int fd;
+		int rv = 0;
+		char temp[32] = "/tmp/mpw-shell-XXXXXXXX";
+		fdset pipe_fd;
+
+		fd = mkstemp(temp);
+		pipe_fd.set(1, fd);
+
+		try {
+
+			rv = children[0]->execute(e, pipe_fd | fds, throwup);
+
+			// fdset will close the fd ...
+			pipe_fd.swap_in_out();
+			lseek(fd, 0, SEEK_SET);
+
+			rv = children[1]->execute(e, pipe_fd | fds, throwup);
+
+		} catch(std::exception &ex) {
+			unlink(temp);
+			throw;
+		}
+	}
+	if (children[0]) return children[0]->execute(e, fds, throwup);
+	if (children[1]) return children[1]->execute(e, fds, throwup);
+	return e.status(0, throwup);
+}
 
 int vector_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 
