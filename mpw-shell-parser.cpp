@@ -374,7 +374,7 @@ value expression_parser::eval(int op, value &lhs, value &rhs) {
 			return lhs.to_number() >> rhs.to_number();
 
 		case '<<':
-			return lhs.to_number() >> rhs.to_number();
+			return lhs.to_number() << rhs.to_number();
 
 			// logical || . NaN ok
 		case '||':
