@@ -3,132 +3,131 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <stdexcept>
 
 #include <stdio.h>
 
 #include "mpw-shell.h"
-
+#include "error.h"
 
 %%{
-	machine line_parser;
+	
+	machine expand;
 	alphtype unsigned char;
 
-	escape = 0xb6;
-	ws = [ \t];
-	nl = '\n';
-
-	action push_back {
-		line.push_back(fc);
-	}
-	action push_back_escape {
-		line.push_back(escape);
-		line.push_back(fc);
-	}
-
-
-	sstring = 
-		['] $push_back
-		( (any-nl-[']) $push_back )*
-		['] $push_back
-		$err{
-			fprintf(stderr, "### MPW Shell - 's must occur in pairs.\n");
+	action push { scratch.push_back(fc); }
+	action vinit { /* vinit */ ev.clear(); xcs = fcurs; fnext vstring_state; }
+	action vpush { /* vpush */ ev.push_back(fc); }
+	action vfinish0 { /* vfinish0 */ fnext *xcs; }
+	action vfinish1 {
+		/* vfinish1 */
+		fnext *xcs; 
+		auto iter = env.find(ev);
+		if (iter != env.end()) {
+			const std::string &s = iter->second;
+			scratch.append(s);
 		}
-	;
-
-	# same quoting logic as ' string
-	vstring = 
-		'{'
-		( (any-nl-'}') ${var.push_back(fc); } )*
-		'}'
-		${
-			if (!var.empty()) {
-
-				// flag to pass through vs "" ?
-				auto iter = env.find(var);
-				if (iter == env.end()) {
-					if (env.passthrough()) {
-						line.push_back('{');
-						line.append(var);
-						line.push_back('}');
-					}
-				}
-				else {
-					line.append((std::string)iter->second);
-				}
+	}
+	action vfinish2 {
+		/* vfinish2 */
+		fnext *xcs;
+		auto iter = env.find(ev);
+		if (iter != env.end()) {
+			// quote special chars...
+			const std::string &s = iter->second;
+			for (auto c : s) {
+				if (c == '\'' || c == '"' ) scratch.push_back(escape);
+				scratch.push_back(c);
 			}
-			var.clear();
 		}
-		$err{
-			fprintf(stderr, "### MPW Shell - {s must occur in pairs.\n");
-		}
-	;
+	}
+
+	action einit{ /* einit */ ev.clear(); xcs = fcurs; fnext estring_state; }
+	action epush{ /* epush */ ev.push_back(fc); }
+	action efinish1{
+		/* efinish1 */
+		fnext *xcs;
+		throw std::runtime_error("MPW Shell - `...` not yet supported.");
+	}
+	action efinish2{
+		/* efinish2 */
+		fnext *xcs;
+		throw std::runtime_error("MPW Shell - `...` not yet supported.");
+	}
+
+	action vstring_error{
+		throw vstring_error();
+	}
+
+	action estring_error{
+		throw estring_error();
+	}
 
 
-	# double-quoted string.  
-	# escape \n is ignored.  others do nothing.
-	dstring =
-		["] $push_back
-		(
-			escape (
-				nl ${ /* esc newline */ }
-				|
-				(any-nl) $push_back_escape
-			)
-			|
-			vstring
-			|
-			(any-escape-nl-["{]) $push_back
-		)* ["] $push_back
-		$err{
-			fprintf(stderr, "### MPW Shell - \"s must occur in pairs.\n");
-		}
-	;
+	escape = 0xb6;
+	char = any - escape - ['"{`];
+	escape_seq = escape any;
+
+	schar = [^'];
+	sstring = ['] schar** ['];
 
 
-	main :=
-		(
-			sstring
-			|
-			dstring
-			|
-			vstring
-			|
-			escape any $push_back_escape
-			|
-			(any-['"{]) $push_back
-		)*
-		;
+	vchar = [^}] $vpush;
+	vchar1 = [^{}] $vpush;
+
+	vstring0 = '}' @vfinish0;
+	vstring1 = vchar1 vchar** '}' @vfinish1;
+	vstring2 = '{' vchar** '}}' @vfinish2;
+
+	vstring_state := (vstring0 | vstring1 | vstring2) $err(vstring_error);
+	vstring = '{' $vinit;
+
+	echar = (escape_seq | any - escape - [`]) $epush;
+
+	estring1 = echar+ '`' @efinish1;
+	estring2 = '`' echar* '``' @efinish2;
+
+	estring_state := (estring1 | estring2) $err(estring_error);
+	estring = '`' $einit;
 
 
+
+	dchar = escape_seq $push | estring | vstring | (any - escape - [`{"]) $push;
+	dstring = ["] dchar** ["];
+
+
+	main := (
+		  escape_seq $push
+		| sstring $push
+		| dstring
+		| vstring
+		| estring
+		| char $push
+	)**;
 
 
 }%%
 
-
-
-%% write data;
-
-
-/*
- * has to be done separately since you can do dumb stuff like:
- * set q '"' ; echo {q} dsfsdf"
- */
-
-std::string expand_vars(const std::string &s, const Environment &env) {
-	
-	if (s.find('{') == s.npos) return s;
-	std::string var;
-	std::string line;
-
-	int cs;
-	const unsigned char *p = (const unsigned char *)s.data();
-	const unsigned char *pe = (const unsigned char *)s.data() + s.size();
-	const unsigned char *eof = pe;
-
-	%%write init;
-
-	%%write exec;
-
-	return line;
+namespace {
+	%% write data;
 }
 
+std::string expand_vars(const std::string &s, const Environment &env) {
+	if (s.find_first_of("{`", 0, 2) == s.npos) return s;
+
+	int cs;
+	int xcs;
+
+	const unsigned char *p = (const unsigned char *)s.data();
+	const unsigned char *pe = p + s.size();
+	const unsigned char *eof = pe;
+
+	std::string scratch;
+	std::string ev;
+
+	scratch.reserve(s.size());
+	%% write init;
+	%% write exec;
+
+	return scratch;
+}
