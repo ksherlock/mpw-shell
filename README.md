@@ -18,21 +18,28 @@ Supported features
 * redirection
 *  | "pipes" (via a temporary file. Presumably, that's what MPW did as well.)
 
-Not supported
+Not (yet) supported
 -------------
 * subshells (`...`, ``...``)
-* text-editing commands (search forward/backward, regular expressions, et cetera)
+* aliases
+* regular expressions
+* text-editing commands (search forward/backward, et cetera)
 
 Builtin Commands
 ----------------
 * AboutBox
+* Alias
+* Catenate
 * Directory
 * Echo
+* Evaluate
 * Exists
 * Export
 * Parameters
 * Quote
 * Set
+* Shift
+* Unalias
 * Unexport
 * Unset
 * Version
