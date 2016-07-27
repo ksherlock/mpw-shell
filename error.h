@@ -14,13 +14,13 @@ public:
 
 	constexpr int status() const noexcept { return _status; }
 private:
-		int _status;
+	int _status;
 };
 
 class execution_of_input_terminated : public mpw_error {
 public:
 	execution_of_input_terminated(int status = -9) :
-		mpw_error(status, "MPW Shell - Execution of input Terminated.")
+	mpw_error(status, "MPW Shell - Execution of input Terminated.")
 	{}
 };
 
@@ -39,6 +39,32 @@ public:
 	{}
 };
 
+class estring_error: public mpw_error {
+public:
+	estring_error(int status = -3) : 
+	mpw_error(status, "MPW Shell - `s must occur in pairs.")
+	{}
+};
 
+class vstring_error: public mpw_error {
+public:
+	vstring_error(int status = -3) : 
+	mpw_error(status, "MPW Shell - {s must occur in pairs.")
+	{}
+};
+
+class sstring_error: public mpw_error {
+public:
+	sstring_error(int status = -3) : 
+	mpw_error(status, "MPW Shell - 's must occur in pairs.")
+	{}
+};
+
+class dstring_error: public mpw_error {
+public:
+	dstring_error(int status = -3) : 
+	mpw_error(status, "MPW Shell - \"s must occur in pairs.")
+	{}
+};
 
 #endif

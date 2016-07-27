@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "mpw-shell.h"
+#include "error.h"
 
 %%{
 	machine  tokenizer;
@@ -29,9 +30,7 @@
 	sstring = 
 		['] schar** [']
 		${ quoted = true; }
-		$err{
-			throw std::runtime_error("### MPW Shell - 's must occur in pairs.");
-		}
+		$err{ throw sstring_error(); }
 	;
 
 	escape_seq =
@@ -49,9 +48,7 @@
 	dstring =
 		["] dchar** ["]
 		${ quoted = true; }
-		$err{
-			throw std::runtime_error("### MPW Shell - \"s must occur in pairs.");
-		}
+		$err{ throw dstring_error(); }
 	;
 
 
