@@ -28,13 +28,13 @@
 
 	schar = [^'] $push_back;
 	sstring = 
-		['] schar** [']
-		${ quoted = true; }
+		['] ${ quoted = true; } schar** [']
 		$err{ throw sstring_error(); }
 	;
 
+	# if eof, should push escape...
 	escape_seq =
-		escape
+		escape $err{ scratch.push_back(escape); }
 		(
 			  'f' ${scratch.push_back('\f'); }
 			| 'n' ${scratch.push_back('\n'); /* \r ? */ }
@@ -46,8 +46,7 @@
 	# double-quoted string.
 	dchar = escape_seq | (any - escape - ["]) $push_back;
 	dstring =
-		["] dchar** ["]
-		${ quoted = true; }
+		["] ${ quoted = true; } dchar** ["]
 		$err{ throw dstring_error(); }
 	;
 
@@ -57,7 +56,7 @@
 	# > == start state (single char tokens or common prefix)
 	# % == final state (multi char tokens w/ unique prefix)
 	# $ == all states
-
+	char = any - escape - ['"];
 	main := |*
 			ws+  >push_token;
 			'>>' %push_token => { tokens.emplace_back(">>", '>>'); };
@@ -146,7 +145,7 @@
 			dstring ;
 			escape_seq;
 
-			(any-escape-['"]) => push_back;
+			char => push_back;
 		*|
 		;
 }%%
@@ -205,10 +204,6 @@ std::vector<token> tokenize(const std::string &s, bool eval)
 	%%write init;
 
 	%%write exec;
-
-	if (cs == tokenizer_error) {
-		throw std::runtime_error("MPW Shell - Lexer error.");
-	}
 
 	if (!scratch.empty() || quoted) {
 		tokens.emplace_back(std::move(scratch));
