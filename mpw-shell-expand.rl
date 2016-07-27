@@ -16,21 +16,20 @@
 	alphtype unsigned char;
 
 	action push { scratch.push_back(fc); }
-	action vinit { /* vinit */ ev.clear(); xcs = fcurs; fnext vstring_state; }
+	action vinit { /* vinit */ ev.clear(); xcs = fcurs; fgoto vstring_state; }
 	action vpush { /* vpush */ ev.push_back(fc); }
 	action vfinish0 { /* vfinish0 */ fnext *xcs; }
 	action vfinish1 {
 		/* vfinish1 */
-		fnext *xcs; 
 		auto iter = env.find(ev);
 		if (iter != env.end()) {
 			const std::string &s = iter->second;
 			scratch.append(s);
 		}
+		fgoto *xcs;
 	}
 	action vfinish2 {
 		/* vfinish2 */
-		fnext *xcs;
 		auto iter = env.find(ev);
 		if (iter != env.end()) {
 			// quote special chars...
@@ -40,19 +39,20 @@
 				scratch.push_back(c);
 			}
 		}
+		fgoto *xcs;
 	}
 
-	action einit{ /* einit */ ev.clear(); xcs = fcurs; fnext estring_state; }
+	action einit{ /* einit */ ev.clear(); xcs = fcurs; fgoto estring_state; }
 	action epush{ /* epush */ ev.push_back(fc); }
 	action efinish1{
 		/* efinish1 */
-		fnext *xcs;
 		throw std::runtime_error("MPW Shell - `...` not yet supported.");
+		fgoto *xcs;
 	}
 	action efinish2{
 		/* efinish2 */
-		fnext *xcs;
 		throw std::runtime_error("MPW Shell - `...` not yet supported.");
+		fgoto *xcs;
 	}
 
 	action vstring_error{
@@ -92,14 +92,14 @@
 
 
 
-	dchar = escape_seq $push | estring | vstring | (any - escape - [`{"]) $push;
-	dstring = ["] dchar** ["];
+	dchar = escape_seq | estring | vstring | (any - escape - [`{"]);
+	dstring = ["] dchar** ["] ;
 
 
 	main := (
 		  escape_seq $push
 		| sstring $push
-		| dstring
+		| dstring $push
 		| vstring
 		| estring
 		| char $push
