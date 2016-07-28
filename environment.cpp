@@ -175,7 +175,7 @@ namespace {
 		return i;
 	}
 
-	void Environment::echo(const char *fmt, ...) {
+	void Environment::echo(const char *fmt, ...) const {
 		if (_echo && !_startup) {
 			for (unsigned i = 0; i < _indent; ++i) {
 				fputc(' ', stderr);

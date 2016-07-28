@@ -100,7 +100,7 @@ public:
 	const_iterator find( const std::string & key ) const;
 
 
-	void echo(const char *format, ...);
+	void echo(const char *format, ...) const;
 
 	template<class FX>
 	void indent_and(FX &&fx) {
