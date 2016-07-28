@@ -6,6 +6,7 @@ enum {
 	st_text_esc,
 
 	st_comment,
+	st_comment_esc,
 
 	st_vstring,
 	st_vstring_esc,
@@ -39,6 +40,11 @@ int phase1::process(unsigned char c, int st) {
 		default: // will error later.
 			flush();
 			multiline = false;
+			line++;
+			return st_text;
+
+		case st_comment_esc:
+			multiline = true;
 			line++;
 			return st_text;
 
@@ -82,9 +88,11 @@ text:
 			break;
 
 		case st_comment:
-			return st;
+			if (c == esc) return st_comment_esc;
+			return st_comment;
 			break;
 
+		case st_comment_esc:
 		case st_text_esc:
 		case st_dstring_esc:
 		case st_estring1_esc:
