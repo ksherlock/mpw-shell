@@ -85,25 +85,19 @@ int read_fd(phase1 &p, int fd) {
 
 	for (;;) {
 		size = read(fd, buffer, sizeof(buffer));
-		if (size == 0) break;
 		if (size < 0) {
 			if (errno == EINTR) continue;
 			perror("read: ");
 			return -1;
 		}
 		try {
-			p.process(buffer, buffer + size);
+			if (size == 0) p.finish();
+			else p.process(buffer, buffer + size);
 		} catch(std::exception &ex) {
-			fprintf(stderr, "%s\n", ex.what());
+			fprintf(stderr, "### %s\n", ex.what());
 			p.reset();
 		}
-	}
-
-	try {
-		p.finish();
-	} catch(std::exception &ex) {
-		fprintf(stderr, "%s\n", ex.what());
-		p.reset();
+		if (size == 0) break;
 	}
 
 	return 0;
@@ -240,7 +234,7 @@ int interactive(Environment &env, phase1 &p1, phase2& p2) {
 			p1.process(s);
 
 		} catch(std::exception &ex) {
-			fprintf(stderr, "%s\n", ex.what());
+			fprintf(stderr, "### %s\n", ex.what());
 			p1.reset();
 		}
 
@@ -249,7 +243,7 @@ int interactive(Environment &env, phase1 &p1, phase2& p2) {
 	try {
 		p1.finish();
 	} catch(std::exception &ex) {
-		fprintf(stderr, "%s\n", ex.what());
+		fprintf(stderr, "### %s\n", ex.what());
 		p1.reset();
 	}
 
@@ -371,7 +365,7 @@ int make(int argc, char **argv) {
 				ptr->execute(e, fds);
 			} catch (execution_of_input_terminated &ex) {
 				control_c = 0;
-				fprintf(stderr, "%s\n", ex.what());
+				fprintf(stderr, "### %s\n", ex.what());
 				if (e.exit()) 
 					exit(ex.status());
 				e.status(ex.status(), false);
@@ -523,7 +517,7 @@ int main(int argc, char **argv) {
 			} catch (execution_of_input_terminated &ex) {
 				control_c = 0;
 				if (!(ptr->terminal() && ++iter == v.end())) {
-					fprintf(stderr, "%s\n", ex.what());
+					fprintf(stderr, "### %s\n", ex.what());
 				}
 				e.status(ex.status(), false);
 				return;
