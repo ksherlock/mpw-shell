@@ -127,7 +127,7 @@
 	alphtype unsigned char;
 
 	action push { argv0.push_back(tolower(fc)); }
-
+	action break { fbreak; }
 
 	escape = 0xb6;
 	ws = [ \t];
@@ -151,13 +151,15 @@
 	dchar = esc_seq | (any-escape-["]) $push;
 	dstring = ["] dchar** ["];
 
+	# mpw doesn't handle quotes at this point,
+	# so simplify and stop if we see anything invalid.
 	main := (
-		  ws ${ fbreak; }
-		| [{`] ${ argv0.clear(); fbreak; }
-		| sstring
-		| dstring
-		| esc_seq
-		| (any-escape-['"]) $push
+		  ws $break
+		| [|<>] $break
+		| 0xb7 $break
+		| 0xb3 $break
+		| [^a-zA-Z] ${ return COMMAND; }
+		| any $push
 	)**;
 
 }%%
