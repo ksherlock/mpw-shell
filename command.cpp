@@ -32,7 +32,7 @@ namespace ToolBox {
 }
 
 
-
+typedef std::vector<token> token_vector;
 
 
 namespace {
@@ -52,48 +52,8 @@ namespace {
 		fprintf(stderr, "# Usage - %s [if expression...]\n", name);
 		return -3;
 	}
-	int evaluate(int type, const std::string &s, Environment &env) {
-		std::string tmp(s);
-		auto tokens = tokenize(tmp, true);
-		std::reverse(tokens.begin(), tokens.end());
 
-		int32_t e;
-
-		switch(type) {
-			default: return 0;
-
-			case BREAK:
-			case CONTINUE:
-			case ELSE:
-				tokens.pop_back();
-
-				if (tokens.empty()) return 1;
-
-				if (strcasecmp(tokens.back().string.c_str(), "if") != 0) {
-					const char *name = "";
-					switch(type) {
-						case BREAK: name = "Break"; break;
-						case CONTINUE: name = "Continue"; break;
-						case ELSE: name = "Else"; break;
-					}
-					return bad_if(name);
-				}
-				// fall through.
-			case IF:
-				tokens.pop_back();
-				try {
-					e = evaluate_expression("If", std::move(tokens));
-				}
-				catch (std::exception &ex) {
-					fprintf(stderr, "%s\n", ex.what());
-					return -5;
-				}
-				break;
-		}
-		return !!e;
-	}
-
-	int evaluate(int type, std::vector<token> &&tokens, Environment &env) {
+	int evaluate(int type, token_vector &&tokens, Environment &env) {
 		std::reverse(tokens.begin(), tokens.end());
 
 		int32_t e;
@@ -332,8 +292,11 @@ command::~command()
 template<class F>
 int exec(std::string command, Environment &env, bool throwup, F &&fx) {
 
-	if (control_c) throw execution_of_input_terminated();
 	bool echo = true;
+	int rv = 0;
+
+	if (control_c) throw execution_of_input_terminated();
+
 	try {
 		process p;
 		command = expand_vars(command, env);
@@ -345,11 +308,11 @@ int exec(std::string command, Environment &env, bool throwup, F &&fx) {
 
 		if (p.arguments.empty()) return env.status(0);
 
-		return env.status(fx(p), throwup);
+		rv = fx(p);
 	}
 	catch (mpw_error &e) {
 		if (echo) env.echo("%s", command.c_str()); 
-		fprintf(stderr, "%s\n", e.what());
+		fprintf(stderr, "### %s\n", e.what());
 		return env.status(e.status(), throwup);
 	}
 	catch (std::exception &e) {
@@ -358,6 +321,7 @@ int exec(std::string command, Environment &env, bool throwup, F &&fx) {
 		return env.status(-4, throwup);
 	}
 
+	return env.status(rv);
 
 }
 
@@ -401,9 +365,12 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 template<class F>
 int eval_exec(std::string command, Environment &env, bool throwup, F &&fx){
 
-	bool echo = true;
-	if (control_c) throw execution_of_input_terminated();
 	std::string name;
+	bool echo = true;
+	int rv = 0;
+
+	if (control_c) throw execution_of_input_terminated();
+
 	try {
 		command = expand_vars(command, env);
 		auto tokens = tokenize(command, true);
@@ -413,8 +380,7 @@ int eval_exec(std::string command, Environment &env, bool throwup, F &&fx){
 		echo = false;
 		name = tokens[0].string;
 
-		int ok = fx(tokens);
-		return env.status(ok, throwup);
+		rv = fx(tokens);
 	}
 
 	catch (mpw_error &e) {
@@ -429,8 +395,10 @@ int eval_exec(std::string command, Environment &env, bool throwup, F &&fx){
 		fprintf(stderr, "### %s - %s\n", name.c_str(), e.what());
 		return env.status(-4, throwup);	
 	}
+
+	return env.status(rv, throwup);
+
 }
-typedef std::vector<token> token_vector;
 
 int evaluate_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
@@ -627,32 +595,15 @@ int error_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 	return e.status(-3);
 }
 
-namespace {
-
-	int check_ends(const std::string &s, fdmask &fds) {
-
-		// MPW ignores any END tokens other than redirection.
-		process p;
-		try {
-			std::string tmp(s);
-			auto tokens = tokenize(tmp, false);
-			parse_tokens(std::move(tokens), p);
-		}
-		catch (std::exception &e) {
-			fprintf(stderr, "%s\n", e.what());
-			return -4;
-		}
-		fds = p.fds.to_mask();
-		return 0;
-	}
-}
-
 template<class F>
 int begin_end_exec(std::string begin, std::string end, Environment &env, bool throwup, F &&fx) {
 
-	if (control_c) throw execution_of_input_terminated();
 
 	bool echo = true;
+	int rv = 0;
+
+	if (control_c) throw execution_of_input_terminated();
+
 	try {
 		process p;
 		begin = expand_vars(begin, env);
@@ -665,15 +616,15 @@ int begin_end_exec(std::string begin, std::string end, Environment &env, bool th
 
 		if (echo) env.echo("%s ... %s", begin.c_str(), end.c_str() );
 
-		int ok = fx(b, p);
-		return env.status(ok, throwup);
+		rv = fx(b, p);
 	}
 	catch (execution_of_input_terminated &e) {
+		// pass through.
 		throw; 
 	}
 	catch (mpw_error &e) {
 		if (echo) env.echo("%s ... %s", begin.c_str(), end.c_str() );
-		fprintf(stderr, "%s\n", e.what());
+		fprintf(stderr, "### %s\n", e.what());
 		return env.status(e.status(), throwup);
 	}
 	catch (std::exception &e) {
@@ -682,6 +633,7 @@ int begin_end_exec(std::string begin, std::string end, Environment &env, bool th
 		return env.status(-4, throwup);
 	}
 
+	return env.status(rv, throwup);
 
 }
 
