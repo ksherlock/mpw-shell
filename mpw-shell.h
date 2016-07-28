@@ -48,7 +48,7 @@ public:
 
 
 
-std::vector<token> tokenize(const std::string &s, bool eval = false);
+std::vector<token> tokenize(std::string &s, bool eval = false);
 std::string expand_vars(const std::string &s, const class Environment &);
 
 //std::string quote(std::string &&s);

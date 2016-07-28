@@ -11,44 +11,31 @@
 
 
 	escape = 0xb6;
-	ws = [ \t];
-	nl = '\n' | '\r';
+	ws = [ \t\n\r];
 
 	action push_token {
-		if (!scratch.empty() || quoted) {
+		if (!scratch.empty()) {
 			tokens.emplace_back(std::move(scratch));
 			scratch.clear();
-			quoted = false;
 		}
 	}
 
-	action push_back {
+	action push {
 		scratch.push_back(fc);
 	}
 
-	schar = [^'] $push_back;
-	sstring = 
-		['] ${ quoted = true; } schar** [']
-		$err{ throw sstring_error(); }
-	;
+	action push_string {
+		scratch.append(ts, te);
+	}
 
-	# if eof, should push escape...
-	escape_seq =
-		escape $err{ scratch.push_back(escape); }
-		(
-			  'f' ${scratch.push_back('\f'); }
-			| 'n' ${scratch.push_back('\n'); /* \r ? */ }
-			| 't' ${scratch.push_back('\t'); }
-			| [^fnt] $push_back
-		)
-	;
+	schar = [^'] ;
+	sstring = ['] schar** ['] $err{ throw sstring_error(); } ;
+
+	escape_seq = escape any ;
 
 	# double-quoted string.
-	dchar = escape_seq | (any - escape - ["]) $push_back;
-	dstring =
-		["] ${ quoted = true; } dchar** ["]
-		$err{ throw dstring_error(); }
-	;
+	dchar = escape_seq | (any - escape - ["]);
+	dstring = ["] dchar** ["] $err{ throw dstring_error(); } ;
 
 
 	action eval { eval }
@@ -56,7 +43,7 @@
 	# > == start state (single char tokens or common prefix)
 	# % == final state (multi char tokens w/ unique prefix)
 	# $ == all states
-	char = any - escape - ['"];
+	char = any - ['"];
 	main := |*
 			ws+  >push_token;
 			'>>' %push_token => { tokens.emplace_back(">>", '>>'); };
@@ -141,33 +128,29 @@
 				 %push_token => { tokens.emplace_back("-=", '-='); };
 
 
-			sstring ;
-			dstring ;
-			escape_seq;
+			sstring => push_string;
+			dstring => push_string;
+			escape_seq => push_string;
 
-			char => push_back;
+			char => push;
 		*|
 		;
 }%%
 
 
 
-inline void replace_eval_token(token &t) {
+void replace_eval_token(token &t) {
 
 %%{
 	
 	machine eval_keywords;
 
 	main := 
-		/and/i %{ t.type = '&&'; } 
-		|
-		/or/i %{ t.type = '||'; }
-		|
-		/not/i %{ t.type = '!'; }
-		|
-		/div/i %{ t.type = '/'; }
-		|
-		/mod/i %{ t.type = '%'; }
+		  'and'i %{ t.type = '&&'; } 
+		| 'or'i  %{ t.type = '||'; }
+		| 'not'i %{ t.type = '!'; }
+		| 'div'i %{ t.type = '/'; }
+		| 'mod'i %{ t.type = '%'; }
 		;
 }%%
 
@@ -180,15 +163,68 @@ inline void replace_eval_token(token &t) {
 	const char *pe = t.string.data() + t.string.size();
 	const char *eof = pe;
 	int cs;
+
 	%%write init;
 
 	%%write exec;
 }
-std::vector<token> tokenize(const std::string &s, bool eval)
+
+
+void unquote(token &t) {
+
+	if (t.string.find_first_of("'\"\xb6", 0, 3) == t.string.npos) return;
+
+	int cs;
+	const unsigned char *p = (const unsigned char *)t.string.data();
+	const unsigned char *pe = p + t.string.length();
+	const unsigned char *eof = pe;
+
+	std::string scratch;
+	scratch.reserve(t.string.length());
+%%{
+	
+	machine unquote;
+	alphtype unsigned char;
+
+	action push { scratch.push_back(fc); }
+	escape = 0xb6;
+	char = any - escape - ['"];
+
+	schar = [^'] $push;
+	sstring = ['] schar** ['];
+
+	ecode = 
+		  'f' ${ scratch.push_back('\f'); }
+		| 'n' ${ scratch.push_back('\n'); }
+		| 't' ${ scratch.push_back('\t'); }
+		| [^fnt] ${ scratch.push_back(fc); }
+		;
+
+	escape_seq = escape $err{ scratch.push_back(escape); } ecode;
+
+	dchar = escape ecode | (any - escape - ["]) $push;
+	dstring = ["] dchar** ["];
+
+	main := (
+		  escape_seq
+		| sstring
+		| dstring
+		| char $push
+	)**;
+
+	write data;
+	write init;
+	write exec;
+}%%
+
+	t.string = std::move(scratch);
+}
+
+
+std::vector<token> tokenize(std::string &s, bool eval)
 {
 	std::vector<token> tokens;
 	std::string scratch;
-	bool quoted = false; // found a quote character ("" creates a token)
 
 
 	%%machine tokenizer;
@@ -205,9 +241,21 @@ std::vector<token> tokenize(const std::string &s, bool eval)
 
 	%%write exec;
 
-	if (!scratch.empty() || quoted) {
+	if (!scratch.empty()) {
 		tokens.emplace_back(std::move(scratch));
 		scratch.clear();
+	}
+
+	// re-build s.
+	s.clear();
+	for (const token &t : tokens) {
+		s.append(t.string);
+		s.push_back(' ');
+	}
+	if (!s.empty()) s.pop_back();
+
+	for (token &t : tokens) {
+		if (t.type == token::text) unquote(t);
 	}
 
 	// alternate operator tokens for eval
