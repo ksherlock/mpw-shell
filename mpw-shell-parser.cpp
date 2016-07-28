@@ -1,6 +1,7 @@
 #include "mpw-shell.h"
 #include "fdset.h"
 #include "value.h"
+#include "error.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -33,12 +34,12 @@ T pop(std::vector<T> &v) {
 
 void open_error(const std::string &name) {
 
-	std::string error = "### MPW Shell - Unable to open ";
+	std::string error = "MPW Shell - Unable to open ";
 	error.push_back('"');
 	error.append(name);
 	error.push_back('"');
 	error.push_back('.');
-	throw std::runtime_error(error);	
+	throw mpw_error(-4, error);	
 }
 
 int open(const std::string &name, int flags) {
@@ -119,7 +120,7 @@ void parse_tokens(std::vector<token> &&tokens, process &p) {
 
 				{
 					if (tokens.empty()) {
-						throw std::runtime_error("### MPW Shell - Missing file name.");
+						throw mpw_error(-4, "MPW Shell - Missing file name.");
 					}
 					token name = pop(tokens);
 					int fd = open(name.string, flags);
@@ -224,23 +225,23 @@ void expression_parser::expect_binary_operator() {
 	token t = next();
 
 	std::string error;
-	error = "### " + name;
+	error = name;
 	error += " - Expected a binary operator when \"";
 	error += t.string;
 	error += "\" was encountered.";
-	throw std::runtime_error(error);
+	throw mpw_error(-5, error);
 }
 
 void expression_parser::end_of_expression() {
 	std::string error;
-	error = "### " + name + " - Unexpected end of expression.";
-	throw std::runtime_error(error);
+	error = name + " - Unexpected end of expression.";
+	throw mpw_error(-5, error);
 }
 
 void expression_parser::divide_by_zero() {
 	std::string error;
-	error = "### " + name + " - Attempt to divide by zero.";
-	throw std::runtime_error(error);
+	error = name + " - Attempt to divide by zero.";
+	throw mpw_error(-5, error);
 }
 
 
@@ -462,7 +463,7 @@ int32_t expression_parser::evaluate() {
 	value v = binary();
 	if (!tokens.empty()) {
 		if (tokens.back().type == ')')
-			throw std::runtime_error("### MPW Shell - Extra ) command.");
+			throw mpw_error(-3, "MPW Shell - Extra ) command.");
 		throw std::runtime_error("evaluation stack error."); // ?? should be caught above.
 	}
 	return v.to_number(1);
