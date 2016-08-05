@@ -69,13 +69,10 @@ command_list ::= command_list command(C) sep . {
 
 
 compound_list ::= .
-compound_list(RV) ::= compound_list(L) sep. {
-	RV = std::move(L);
-}
+compound_list(L) ::= compound_list(L) sep.
 
-compound_list(RV) ::= compound_list(L) command(C) sep . {
-	RV = std::move(L);
-	if (C) RV.emplace_back(std::move(C));
+compound_list(L) ::= compound_list(L) command(C) sep . {
+	if (C) L.emplace_back(std::move(C));
 }
 
 
@@ -99,17 +96,17 @@ command(RV) ::= command(L) PIPE opt_nl command(R). {
 	RV = std::make_unique<pipe_command>(std::move(L), std::move(R));
 }
 
-command(RV) ::= term(T). { RV = std::move(T); }
+command(C) ::= term(C).
 
 term(RV) ::= COMMAND(C).       { RV = std::make_unique<simple_command>(std::move(C)); }
 term(RV) ::= EVALUATE(C).      { RV = std::make_unique<evaluate_command>(std::move(C)); }
 term(RV) ::= BREAK(C).         { RV = std::make_unique<break_command>(std::move(C)); }
 term(RV) ::= CONTINUE(C).      { RV = std::make_unique<continue_command>(std::move(C)); }
-term(RV) ::= if_command(C).    { RV = std::move(C); }
-term(RV) ::= begin_command(C). { RV = std::move(C); }
-term(RV) ::= paren_command(C). { RV = std::move(C); }
-term(RV) ::= loop_command(C).  { RV = std::move(C); }
-term(RV) ::= for_command(C).   { RV = std::move(C); }
+term(C) ::= if_command(C).
+term(C) ::= begin_command(C).
+term(C) ::= paren_command(C).
+term(C) ::= loop_command(C).
+term(C) ::= for_command(C).
 
 
 /* lexer error (mismatched quotes, etc) */
@@ -140,13 +137,10 @@ term(RV) ::= FOR error END.
 /* compound list ends with a separator.  paren command does not need the final separator */
 %type paren_list { command_ptr_vector }
 
-paren_list(RV) ::= compound_list(L) . {
-	RV = std::move(L);
-}
+paren_list(L) ::= compound_list(L) . 
 
-paren_list(RV) ::= compound_list(L) command(C) . {
-	RV = std::move(L);
-	RV.emplace_back(std::move(C));
+paren_list(L) ::= compound_list(L) command(C) . {
+	L.emplace_back(std::move(C));
 }
 
 paren_command(RV) ::= LPAREN(T) paren_list(L) RPAREN(E). {
@@ -197,9 +191,8 @@ else_command(RV) ::= else(E) sep compound_list(L). {
 }
 
 
-else_command(RV) ::= else_command(EC) else(E) sep compound_list(L). {
-	RV = std::move(EC);
-	RV.emplace_back(std::make_unique<if_else_clause>(@E, std::move(L), std::move(E)));
+else_command(EC) ::= else_command(EC) else(E) sep compound_list(L). {
+	EC.emplace_back(std::make_unique<if_else_clause>(@E, std::move(L), std::move(E)));
 }
 
 
