@@ -321,8 +321,7 @@ int exec(std::string command, Environment &env, bool throwup, F &&fx) {
 		return env.status(-4, throwup);
 	}
 
-	return env.status(rv);
-
+	return env.status(rv, throwup);
 }
 
 int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
@@ -352,8 +351,10 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 		name = p.arguments.front();
 		fs::path path = which(env, name);
 		if (path.empty()) {
-			fprintf(stderr, "### MPW Shell - Command \"%s\" was not found.\n", name.c_str());
-			return -1;
+			std::string error = "MPW Shell - Command \"" + name + "\" was not found.";
+			throw mpw_error(-1, error);
+			//fprintf(stderr, "### MPW Shell - Command \"%s\" was not found.\n", name.c_str());
+			//return -1;
 		}
 		env.set("command", path);
 		p.arguments[0] = path;
