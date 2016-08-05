@@ -66,10 +66,9 @@ RAGEL_TARGET(value value.rl value.cpp COMPILE_FLAGS "-p -G2")
 # need to copy all OUTPUT file to the build dir
 add_custom_command(
 	OUTPUT phase2-parser.cpp phase2-parser.h phase2-parser.out
-	COMMAND lemon++ -Tlempar.cxx phase2-parser.lemon
+	COMMAND lemon++ phase2-parser.lemon
 	COMMAND mv -f phase2-parser.cpp phase2-parser.h phase2-parser.out ${CMAKE_CURRENT_BINARY_DIR}/
 	MAIN_DEPENDENCY phase2-parser.lemon 
-	DEPENDS lempar.cxx
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
