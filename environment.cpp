@@ -2,6 +2,8 @@
 #include <cstdio>
 #include <cstdarg>
 
+#include <algorithm>
+
 #include "error.h"
 
 namespace {
