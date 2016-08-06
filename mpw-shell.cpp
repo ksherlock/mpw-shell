@@ -26,7 +26,7 @@
 
 #include "error.h"
 
-#include <editline/readline.h>
+#include <readline/readline.h>
 
 #include <sys/types.h>
 #include <pwd.h>
