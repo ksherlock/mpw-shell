@@ -12,6 +12,8 @@
 
 #include <cstdio>
 #include <cctype>
+#include <cstring>
+
 #include <unistd.h>
 
 #include "cxx/string_splitter.h"

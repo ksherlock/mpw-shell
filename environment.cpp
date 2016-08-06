@@ -179,7 +179,7 @@ namespace {
 
 	void Environment::echo(const char *fmt, ...) const {
 		if (_echo && !_startup) {
-			for (unsigned i = 0; i <= _indent; ++i) {
+			for (int i = 0; i <= _indent; ++i) {
 				fputc(' ', stderr);
 				fputc(' ', stderr);
 			}
