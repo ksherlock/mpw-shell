@@ -68,21 +68,21 @@ public:
 
 	std::string get(const std::string &k) const;
 
-	constexpr bool echo() const noexcept { return _echo; }
-	constexpr bool test() const noexcept { return _test; }
-	constexpr bool exit() const noexcept { return _exit; }
-	constexpr int status() const noexcept { return _status; }
-	constexpr int pound() const noexcept { return _pound; }
+	bool echo() const noexcept { return _echo; }
+	bool test() const noexcept { return _test; }
+	bool exit() const noexcept { return _exit; }
+	int status() const noexcept { return _status; }
+	int pound() const noexcept { return _pound; }
 
 	int status(int i, bool throw_up = true);
 	int status(int i, const std::nothrow_t &);
 
-	constexpr bool startup() const noexcept { return _startup; }
-	constexpr void startup(bool tf) noexcept { _startup = tf; }
+	bool startup() const noexcept { return _startup; }
+	void startup(bool tf) noexcept { _startup = tf; }
 
 
-	constexpr bool passthrough() const noexcept { return _passthrough; }
-	constexpr void passthrough(bool tf) noexcept { _passthrough = tf; }
+	bool passthrough() const noexcept { return _passthrough; }
+	void passthrough(bool tf) noexcept { _passthrough = tf; }
 
 	template<class FX>
 	void foreach(FX && fx) { for (const auto &kv : _table) { fx(kv.first, kv.second); }}
@@ -117,7 +117,7 @@ public:
 		catch (...) { _indent = i; _loop = j; throw; } 
 	}
 
-	constexpr bool loop() const noexcept { return _loop; }
+	bool loop() const noexcept { return _loop; }
 
 	const alias_table_type &aliases() const { return _alias_table; }
 

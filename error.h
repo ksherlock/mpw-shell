@@ -12,7 +12,7 @@ public:
 	mpw_error(int status, const char *s) : std::runtime_error(s), _status(status)
 	{}
 
-	constexpr int status() const noexcept { return _status; }
+	int status() const noexcept { return _status; }
 private:
 	int _status;
 };

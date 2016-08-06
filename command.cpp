@@ -20,6 +20,7 @@
 #include <sysexits.h>
 #include <signal.h>
 #include <atomic>
+#include <sys/wait.h>
 
 extern std::atomic<int> control_c;
 
