@@ -50,15 +50,23 @@ fs::path root() {
 		if (!cp ||  !*cp) {
 			auto pw = getpwuid(getuid());
 			if (!pw) {
-				fprintf(stderr,"Unable to determine home directory\n.");
+				fprintf(stderr,"### Unable to determine home directory\n.");
 				exit(EX_NOUSER);
 			}
 			cp = pw->pw_dir;
 		}
 		root = cp;
-		//if (root.back() != '/') root.push_back('/');
-		//root += "mpw/";
 		root /= "mpw/";
+		fs::error_code ec;
+		fs::file_status st = status(root, ec);
+		if (!fs::exists(st)) {
+			fprintf(stderr, "### Warning: %s does not exist.\n", root.c_str());
+		}
+
+		else if (!fs::is_directory(st)) {
+			fprintf(stderr, "### Warning: %s is not a directory.\n", root.c_str());
+		}
+
 	}
 	return root;
 }
@@ -521,8 +529,13 @@ int main(int argc, char **argv) {
 
 	if (!cflag) fprintf(stdout, "MPW Shell " VERSION "\n");
 	if (!fflag) {
+		fs::path startup = root() / "Startup";
 		e.startup(true);
-		read_file(p1, root() / "Startup");
+		try {
+			read_file(p1, startup);
+		} catch (const std::system_error &ex) {
+			fprintf(stderr, "### %s: %s\n", startup.c_str(), ex.what());
+		}
 		e.startup(false);
 	}
 
