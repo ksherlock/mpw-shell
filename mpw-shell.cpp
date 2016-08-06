@@ -27,6 +27,7 @@
 #include "error.h"
 
 #include <readline/readline.h>
+#include <readline/history.h>
 
 #include <sys/types.h>
 #include <pwd.h>
@@ -285,14 +286,6 @@ void define(Environment &env, const std::string &s) {
 
 }
 
-std::string basename(const char *cp) {
-	std::string tmp(cp);
-	auto pos = tmp.rfind('/');
-	if (pos == tmp.npos) return tmp;
-	return tmp.substr(pos+1);
-
-}
-
 void make_help(void) {
 
 	#undef _
@@ -456,7 +449,7 @@ int main(int argc, char **argv) {
 
 	mpw_path();
 
-	std::string self = basename(argv[0]);
+	fs::path self = fs::path(argv[0]).filename();
 	if (self == "mpw-make") return make(argc - 1, argv + 1);
 	if (self == "mpw-shell" && argc > 1 && !strcmp(argv[1],"make")) return make(argc - 2, argv + 2);
 	
