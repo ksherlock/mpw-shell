@@ -8,19 +8,21 @@
 
 #include <stdexcept>
 #include <unordered_map>
+#include <algorithm>
 #include <cctype>
 #include <cerrno>
 #include <cstdlib>
+#include <cstring>
 
 #include "cxx/filesystem.h"
 #include "cxx/string_splitter.h"
 
+#include <strings.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sysexits.h>
 #include <signal.h>
 #include <atomic>
-#include <sys/wait.h>
 
 extern std::atomic<int> control_c;
 
