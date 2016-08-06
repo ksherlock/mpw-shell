@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <cerrno>
 #include <signal.h>
+#include <sys/waitpid.h>
 
 #include "mpw-shell.h"
 #include "fdset.h"

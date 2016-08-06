@@ -198,7 +198,8 @@ namespace filesystem {
 		}
 		path& remove_filename();
 		path& replace_filename(const path& replacement);
-		path& replace_extension(const path& replacement = path());
+		path& replace_extension(/* const path& replacement = path() */);
+		path& replace_extension(const path& replacement);
 
 		void  swap(path& rhs) noexcept {
 			std::swap(_path, rhs._path);
