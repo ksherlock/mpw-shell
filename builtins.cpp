@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cctype>
 #include <cstring>
+#include <cstdarg>
 
 #include <unistd.h>
 
@@ -96,6 +97,7 @@ namespace {
 }
 
 
+
 #undef stdin
 #undef stdout
 #undef stderr
@@ -107,16 +109,38 @@ namespace {
 #undef fprintf
 #undef fputs
 #undef fputc
+#define fprintf DO_NOT_USE_FPRINTF
+#define fputs DO_NOT_USE_FPUTS
+#define fputc DO_NOT_USE_FPUTC
 
-#define fprintf(...) dprintf(__VA_ARGS__)
-inline int fputs(const char *data, int fd) {
+inline int fdputs(const char *data, int fd) {
 	auto rv = write(fd, data, strlen(data));  return rv < 0 ? EOF : rv;
 }
 
-inline int fputc(int c, int fd) {
+inline int fdputc(int c, int fd) {
 	unsigned char tmp = c;
 	auto rv = write(fd, &tmp, 1);  return rv < 0 ? EOF : c;
 }
+
+#ifdef HAVE_DPRINTF
+#define fdprintf(...) dprintf(__VA_ARGS__)
+#else
+inline int fdprintf(int fd, const char *format, ...) {
+	char *cp = nullptr;
+	va_list ap;
+
+	va_start(ap, format);
+	int len = vasprintf(&cp, format, ap);
+	va_end(ap);
+
+	fdputs(cp, fd);
+	free(cp);
+	return len;
+}
+#endif
+
+
+
 
 std::vector<std::string> load_argv(Environment &env) {
 	std::vector<std::string> rv;
@@ -136,8 +160,8 @@ int builtin_shift(Environment &env, const std::vector<std::string> &tokens, cons
 	int n = 1;
 
 	if (tokens.size() > 3) {
-		fputs("### Shift - Too many parameters were specified.\n", stderr);
-		fputs("# Usage - Shift [number]\n", stderr);
+		fdputs("### Shift - Too many parameters were specified.\n", stderr);
+		fdputs("# Usage - Shift [number]\n", stderr);
 		return 1;
 	}
 
@@ -146,8 +170,8 @@ int builtin_shift(Environment &env, const std::vector<std::string> &tokens, cons
 		value v(tokens[1]);
 		if (v.is_number() && v.number >= 0) n = v.number;
 		else {
-			fputs("### Shift - The parameter must be a positive number.\n", stderr);
-			fputs("# Usage - Shift [number]\n", stderr);
+			fdputs("### Shift - The parameter must be a positive number.\n", stderr);
+			fdputs("# Usage - Shift [number]\n", stderr);
 			return 1;
 		}
 	}
@@ -198,7 +222,7 @@ int builtin_set(Environment &env, const std::vector<std::string> &tokens, const 
 			std::string name = quote(kv.first);
 			std::string value = quote(kv.second);
 
-			fprintf(stdout, "Set %s%s %s\n",
+			fdprintf(stdout, "Set %s%s %s\n",
 				bool(kv.second) ? "-e " : "", 
 				name.c_str(), value.c_str());
 		}
@@ -209,13 +233,13 @@ int builtin_set(Environment &env, const std::vector<std::string> &tokens, const 
 		std::string name = tokens[1];
 		auto iter = env.find(name);
 		if 	(iter == env.end()) {
-			fprintf(stderr, "### Set - No variable definition exists for %s.\n", name.c_str());
+			fdprintf(stderr, "### Set - No variable definition exists for %s.\n", name.c_str());
 			return 2;
 		}
 
 		name = quote(name);
 		std::string value = quote(iter->second);
-		fprintf(stdout, "Set %s%s %s\n", 
+		fdprintf(stdout, "Set %s%s %s\n", 
 			bool(iter->second) ? "-e " : "", 
 			name.c_str(), value.c_str());
 		return 0;
@@ -229,8 +253,8 @@ int builtin_set(Environment &env, const std::vector<std::string> &tokens, const 
 	}
 
 	if (tokens.size() > 3 && !exported) {
-		fputs("### Set - Too many parameters were specified.\n", stderr);
-		fputs("# Usage - set [name [value]]\n", stderr);
+		fdputs("### Set - Too many parameters were specified.\n", stderr);
+		fdputs("# Usage - set [name [value]]\n", stderr);
 		return 1;
 	}
 
@@ -264,14 +288,14 @@ static int export_common(Environment &env, bool export_or_unexport, const std::v
 				flags._s = true;
 				break;
 			default:
-				fprintf(stderr, "### %s - \"-%c\" is not an option.\n", name, c);
+				fdprintf(stderr, "### %s - \"-%c\" is not an option.\n", name, c);
 				error = true;
 				break;
 		}
 	});
 
 	if (error) {
-		fprintf(stderr, "# Usage - %s [-r | -s | name...]\n", name);
+		fdprintf(stderr, "# Usage - %s [-r | -s | name...]\n", name);
 		return 1;
 	}
 
@@ -288,7 +312,7 @@ static int export_common(Environment &env, bool export_or_unexport, const std::v
 		for (const auto &kv : env) {
 			const std::string& vname = kv.first;
 			if (kv.second == export_or_unexport)
-				fprintf(stdout, "%s%s\n", flags._s ? "" : name, quote(vname).c_str());
+				fdprintf(stdout, "%s%s\n", flags._s ? "" : name, quote(vname).c_str());
 		}
 		return 0;
 	}
@@ -305,8 +329,8 @@ static int export_common(Environment &env, bool export_or_unexport, const std::v
 	}
 
 conflict:
-	fprintf(stderr, "### %s - Conflicting options or parameters were specified.\n", name);
-	fprintf(stderr, "# Usage - %s [-r | -s | name...]\n", name);
+	fdprintf(stderr, "### %s - Conflicting options or parameters were specified.\n", name);
+	fdprintf(stderr, "# Usage - %s [-r | -s | name...]\n", name);
 	return 1;
 }
 
@@ -328,7 +352,7 @@ int builtin_alias(Environment &env, const std::vector<std::string> &tokens, cons
 
 	if (tokens.size() == 1) {
 		for (const auto &p : env.aliases()) {
-			fprintf(stdout, "Alias %s %s\n", quote(p.first).c_str(), quote(p.second).c_str());
+			fdprintf(stdout, "Alias %s %s\n", quote(p.first).c_str(), quote(p.second).c_str());
 		}
 		return 0;
 	}
@@ -337,10 +361,10 @@ int builtin_alias(Environment &env, const std::vector<std::string> &tokens, cons
 	if (tokens.size() == 2) {
 		const auto as = env.find_alias(name);
 		if (as.empty()) {
-			fprintf(stderr, "### Alias - No alias exists for %s\n", quote(name).c_str());
+			fdprintf(stderr, "### Alias - No alias exists for %s\n", quote(name).c_str());
 			return 1;
 		}
-		fprintf(stdout, "Alias %s %s\n", quote(name).c_str(), quote(as).c_str());
+		fdprintf(stdout, "Alias %s %s\n", quote(name).c_str(), quote(as).c_str());
 		return 0;
 	}		
 
@@ -388,12 +412,12 @@ int builtin_echo(Environment &env, const std::vector<std::string> &tokens, const
 			continue;
 		}
 		if (space) {
-			fputs(" ", stdout);
+			fdputs(" ", stdout);
 		}
-		fputs(s.c_str(), stdout);
+		fdputs(s.c_str(), stdout);
 		space = true;
 	}
-	if (!n) fputs("\n", stdout);
+	if (!n) fdputs("\n", stdout);
 	return 0;
 }
 
@@ -411,12 +435,12 @@ int builtin_quote(Environment &env, const std::vector<std::string> &tokens, cons
 			continue;
 		}
 		if (space) {
-			fputs(" ", stdout);
+			fdputs(" ", stdout);
 		}
-		fputs(quote(s).c_str(), stdout);
+		fdputs(quote(s).c_str(), stdout);
 		space = true;
 	}
-	if (!n) fputs("\n", stdout);
+	if (!n) fdputs("\n", stdout);
 	return 0;
 }
 
@@ -426,7 +450,7 @@ int builtin_parameters(Environment &env, const std::vector<std::string> &argv, c
 
 	int i = 0;
 	for (const auto &s : argv) {
-		fprintf(stdout, "{%d} %s\n", i++, s.c_str());
+		fdprintf(stdout, "{%d} %s\n", i++, s.c_str());
 	}
 	return 0;
 }
@@ -484,20 +508,20 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 				q = true;
 				break;
 			default:
-				fprintf(stderr, "### Directory - \"-%c\" is not an option.\n", c);
+				fdprintf(stderr, "### Directory - \"-%c\" is not an option.\n", c);
 				error = true;
 				break;
 		}
 	});
 
 	if (error) {
-		fputs("# Usage - Directory [-q | directory]\n", stderr);
+		fdputs("# Usage - Directory [-q | directory]\n", stderr);
 		return 1;
 	}
 
 	if (argv.size() > 1) {
-		fputs("### Directory - Too many parameters were specified.\n", stderr);
-		fputs("# Usage - Directory [-q | directory]\n", stderr);
+		fdputs("### Directory - Too many parameters were specified.\n", stderr);
+		fdputs("# Usage - Directory [-q | directory]\n", stderr);
 		return 1;	
 	}
 
@@ -505,7 +529,7 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 	if (argv.size() == 1) {
 		//cd
 		if (q) {
-			fputs("### Directory - Conflicting options or parameters were specified.\n", stderr);
+			fdputs("### Directory - Conflicting options or parameters were specified.\n", stderr);
 			return 1;
 		}
 
@@ -514,8 +538,8 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 		std::error_code ec;
 		current_path(path, ec);
 		if (ec) {
-			fputs("### Directory - Unable to set current directory.\n", stderr);
-			fprintf(stderr, "# %s\n", ec.message().c_str());
+			fdputs("### Directory - Unable to set current directory.\n", stderr);
+			fdprintf(stderr, "# %s\n", ec.message().c_str());
 			return 1;
 		}
 	}
@@ -525,8 +549,8 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 		fs::path path = fs::current_path(ec);
 		if (ec) {
 
-			fputs("### Directory - Unable to get current directory.\n", stderr);
-			fprintf(stderr, "# %s\n", ec.message().c_str());
+			fdputs("### Directory - Unable to get current directory.\n", stderr);
+			fdprintf(stderr, "# %s\n", ec.message().c_str());
 			return 1;
 
 		}
@@ -534,7 +558,7 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 
 		std::string s = path;
 		if (!q) s = quote(std::move(s));
-		fprintf(stdout, "%s\n", s.c_str());
+		fdprintf(stdout, "%s\n", s.c_str());
 	}
 	return 0;
 }
@@ -572,7 +596,7 @@ int builtin_exists(Environment &env, const std::vector<std::string> &tokens, con
 				_w = true;
 				break;
 			default:
-				fprintf(stderr, "### Exists - \"-%c\" is not an option.\n", c);
+				fdprintf(stderr, "### Exists - \"-%c\" is not an option.\n", c);
 				error = true;
 				break;
 		}
@@ -581,19 +605,19 @@ int builtin_exists(Environment &env, const std::vector<std::string> &tokens, con
 	if (_w) _f = false;
 
 	if (_a + _d + _f + _w > 1) {
-		fputs("### Exists - Conflicting options were specified.\n", stderr);
+		fdputs("### Exists - Conflicting options were specified.\n", stderr);
 		error = true;
 	}
 
 	if (argv.size() < 1) {
-		fputs("### Exists - Not enough parameters were specified.\n", stderr);
+		fdputs("### Exists - Not enough parameters were specified.\n", stderr);
 		error = true;
 	}
 
 
 
 	if (error) {
-		fputs("# Usage - Exists [-a | -d | -f | -w] [-n] [-q] name...\n", stderr);
+		fdputs("# Usage - Exists [-a | -d | -f | -w] [-n] [-q] name...\n", stderr);
 		return 1;
 	}
 
@@ -610,7 +634,7 @@ int builtin_exists(Environment &env, const std::vector<std::string> &tokens, con
 		if (_w && (access(path.c_str(), W_OK | F_OK) < 0)) continue; 
 
 		if (!_q) s = quote(std::move(s));
-		fprintf(stdout, "%s\n", s.c_str());
+		fdprintf(stdout, "%s\n", s.c_str());
 
 	}
 
@@ -712,7 +736,7 @@ int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask
 	int32_t i = evaluate_expression("Evaluate", std::move(tokens));
 
 	if (output == 'h') {
-		fprintf(stdout, "0x%08x\n", i);
+		fdprintf(stdout, "0x%08x\n", i);
 		return 0;
 	}
 
@@ -724,17 +748,17 @@ int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask
 			i <<= 1;
 		}
 		tmp.push_back('\n');
-		fputs(tmp.c_str(), stdout);
+		fdputs(tmp.c_str(), stdout);
 		return 0;
 	}
 
 	if (output == 'o') {
 		// octal.
-		fprintf(stdout, "0%o\n", i);
+		fdprintf(stdout, "0%o\n", i);
 		return 0;
 	}
 
-	fprintf(stdout, "%d\n", i);
+	fdprintf(stdout, "%d\n", i);
 	return 0;
 }
 
@@ -752,19 +776,19 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 			case 'p': case 'P': p = true; break;
 
 			default:
-				fprintf(stderr, "### Which - \"-%c\" is not an option.\n", c);
+				fdprintf(stderr, "### Which - \"-%c\" is not an option.\n", c);
 				error = true;
 				break;
 		}
 	});
 
 	if (argv.size() > 1) {
-		fprintf(stderr, "### Which - Too many parameters were specified.\n");
+		fdprintf(stderr, "### Which - Too many parameters were specified.\n");
 		error = true;
 	}
 
 	if (error) {
-		fprintf(stderr, "# Usage - Which [-a] [-p] [name]\n");
+		fdprintf(stderr, "# Usage - Which [-a] [-p] [name]\n");
 		return 1;
 	}
 
@@ -774,7 +798,7 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 	if (argv.empty()) {
 		// just print the paths.
 		for (; ss; ++ss) {
-			fprintf(stdout, "%s\n", ss->c_str());
+			fdprintf(stdout, "%s\n", ss->c_str());
 		}
 		return 0;
 	}
@@ -790,17 +814,17 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 		fs::path p(ToolBox::MacToUnix(target));
 
 		if (fs::exists(p, ec)) {
-			fprintf(stdout, "%s\n", quote(p).c_str());
+			fdprintf(stdout, "%s\n", quote(p).c_str());
 			return 0;
 		}
 		else {
-			fprintf(stderr, "### Which - File \"%s\" not found.\n", target.c_str());
+			fdprintf(stderr, "### Which - File \"%s\" not found.\n", target.c_str());
 			return 2;
 		}
 	}
 
 	for(; ss; ++ss) {
-		if (p) fprintf(stderr, "checking %s\n", ss->c_str());
+		if (p) fdprintf(stderr, "checking %s\n", ss->c_str());
 
 		std::error_code ec;
 		fs::path p(ToolBox::MacToUnix(ss->c_str()));
@@ -808,7 +832,7 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 		p /= target;
 		if (fs::exists(p, ec)) {
 			found = true;
-			fprintf(stdout, "%s\n", quote(p).c_str());
+			fdprintf(stdout, "%s\n", quote(p).c_str());
 			if (!a) break;
 		}
 
@@ -840,7 +864,7 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 
 		auto iter = std::find(std::begin(builtins), std::end(builtins), target);
 		if (iter != std::end(builtins)) {
-			fprintf(stdout, "%s\n", *iter);
+			fdprintf(stdout, "%s\n", *iter);
 			found = true;
 		}
 
@@ -850,7 +874,7 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 
 	// also check built-ins?
 
-	fprintf(stderr, "### Which - Command \"%s\" was not found.\n", target.c_str());
+	fdprintf(stderr, "### Which - Command \"%s\" was not found.\n", target.c_str());
 	return 2; // not found.
 }
 
@@ -884,7 +908,7 @@ int builtin_catenate(Environment &env, const std::vector<std::string> &tokens, c
 
 	if (tokens.size() == 1) {
 		int rv = cat_helper(stdin, stdout);
-		if (rv) fputs("### Catenate - I/O Error\n", stderr);
+		if (rv) fdputs("### Catenate - I/O Error\n", stderr);
 		return rv;
 	}
 
@@ -893,14 +917,14 @@ int builtin_catenate(Environment &env, const std::vector<std::string> &tokens, c
 		std::string path = ToolBox::MacToUnix(s);
 		int fd = open(path.c_str(), O_RDONLY);
 		if (fd < 0) {
-			fprintf(stderr, "### Catenate - Unable to open \"%s\".\n", path.c_str());
+			fdprintf(stderr, "### Catenate - Unable to open \"%s\".\n", path.c_str());
 			return 1;
 		}
 
 		int rv = cat_helper(fd, stdout);
 		close(fd);
 		if (rv) {
-			fputs("### Catenate - I/O Error\n", stderr);
+			fdputs("### Catenate - I/O Error\n", stderr);
 			return rv;
 		}
 	}
@@ -920,28 +944,28 @@ int builtin_version(Environment &env, const std::vector<std::string> &tokens, co
 				_v = true;
 				break;
 			default:
-				fprintf(stderr, "### Version - \"-%c\" is not an option.\n", c);
+				fdprintf(stderr, "### Version - \"-%c\" is not an option.\n", c);
 				error = true;
 				break;
 		}
 	});
 
 	if (argv.size() != 0) {
-		fprintf(stderr, "### Version - Too many parameters were specified.\n");
+		fdprintf(stderr, "### Version - Too many parameters were specified.\n");
 		error = true;
 	}
 
 	if (error) {
-		fprintf(stderr, "# Usage - Version [-v]\n");
+		fdprintf(stderr, "# Usage - Version [-v]\n");
 		return 1;
 	}
 
-	//fputs("MPW Shell 3.5, Copyright Apple Computer, Inc. 1985-99. All rights reserved.\n", stdout);
-	fputs("MPW Shell " VERSION ", Copyright Kelvin W Sherlock 2016. All rights reserved.\n", stdout);
-	fputs("based on MPW Shell 3.5, Copyright Apple Computer, Inc. 1985-99. All rights reserved.\n", stdout);
+	//fdputs("MPW Shell 3.5, Copyright Apple Computer, Inc. 1985-99. All rights reserved.\n", stdout);
+	fdputs("MPW Shell " VERSION ", Copyright Kelvin W Sherlock 2016. All rights reserved.\n", stdout);
+	fdputs("based on MPW Shell 3.5, Copyright Apple Computer, Inc. 1985-99. All rights reserved.\n", stdout);
 
 	if (_v) {
-		fputs("This version built on " __DATE__ " at " __TIME__ ".\n", stdout);
+		fdputs("This version built on " __DATE__ " at " __TIME__ ".\n", stdout);
 	}
 
 	return 0;
@@ -952,7 +976,7 @@ int builtin_aboutbox(Environment &env, const std::vector<std::string> &tokens, c
 
 	if (tokens.size() == 2 && tokens[1] == "--moof") {
 
-		fputs(
+		fdputs(
 		"\n"
 		"              ##                                            \n"
 		"            ##  ##  ####                                    \n"
@@ -983,7 +1007,7 @@ int builtin_aboutbox(Environment &env, const std::vector<std::string> &tokens, c
 	}
 
 
-	fprintf(stdout,
+	fdprintf(stdout,
 "+--------------------------------------+\n"
 "| MPW Shell %-4s                       |\n"
 "|                                      |\n"
@@ -992,4 +1016,13 @@ int builtin_aboutbox(Environment &env, const std::vector<std::string> &tokens, c
 "+--------------------------------------+\n"
 	, VERSION);
 	return 0;
+}
+
+
+int builtin_true(Environment &, const std::vector<std::string> &, const fdmask &) {
+	return 0;
+}
+
+int builtin_false(Environment &, const std::vector<std::string> &, const fdmask &) {
+	return 1;
 }
