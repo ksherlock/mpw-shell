@@ -66,7 +66,6 @@ void mapped_file_base::open(const path_type& p, mapmode flags, size_t length, si
 
 	HANDLE fh;
 	HANDLE mh;
-	LARGE_INTEGER file_size;
 
 	// length of 0 in CreateFileMapping / MapViewOfFile
 	// means map the entire file.
@@ -89,10 +88,14 @@ void mapped_file_base::open(const path_type& p, mapmode flags, size_t length, si
 
 	auto fh_close = make_unique_resource(fh, CloseHandle);
 
-	GetFileSizeEx(fh, &file_size);
 
-	if (length == -1)
+	if (length == -1) {
+		LARGE_INTEGER file_size;
+		GetFileSizeEx(fh, &file_size);
 		length = file_size.QuadPart;
+	}
+
+	if (length == 0) return;
 
 	DWORD protect = 0;
 	DWORD access = 0;
@@ -232,7 +235,6 @@ void mapped_file_base::close() {
 void mapped_file_base::open(const path_type& p, mapmode flags, size_t length, size_t offset) {
 
 	int fd;
-	struct stat st;
 
 	int oflags = 0;
 
@@ -257,12 +259,18 @@ void mapped_file_base::open(const path_type& p, mapmode flags, size_t length, si
 	//defer([fd](){::close(fd); });
 	auto close_fd = make_unique_resource(fd, ::close);
 
-	if (::fstat(fd, &st) < 0) {
-		throw_error(errno);
+
+
+	if (length == -1) {
+		struct stat st;
+
+		if (::fstat(fd, &st) < 0) {
+			throw_error(errno);
+		}
+		length = st.st_size;
 	}
 
-
-	if (length == -1) length = st.st_size;
+	if (length == 0) return;
 
 	_data = ::mmap(0, length, 
 		flags == readonly ? PROT_READ : PROT_READ | PROT_WRITE, 
