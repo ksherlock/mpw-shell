@@ -81,7 +81,12 @@ void init(Environment &env) {
 
 
 int read_file(phase1 &p, const std::string &file) {
-	const mapped_file mf(file, mapped_file::readonly);
+	std::error_code ec;
+	const mapped_file mf(file, mapped_file::readonly, ec);
+	if (ec) {
+		fprintf(stderr, "# Error reading %s: %s\n", file.c_str(), ec.message().c_str());
+		return 0;
+	}
 
 	p.process(mf.begin(), mf.end(), false);
 	p.finish();

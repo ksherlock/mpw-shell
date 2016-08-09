@@ -8,7 +8,7 @@
 #endif
 
 #include <cstddef>
-
+#include <system_error>
 
 class mapped_file_base {
 public:
@@ -40,7 +40,7 @@ protected:
 
 	void swap(mapped_file_base &rhs);
 
-	void open(const path_type& p, mapmode flags, size_t length, size_t offset);
+	void open(const path_type& p, mapmode flags, size_t length, size_t offset, std::error_code *ec);
 	void create(const path_type &p, size_t new_size); // always creates readwrite.
 	void reset();
 
@@ -79,6 +79,22 @@ public:
 		open(p, flags, length, offset);
 	}
 
+	mapped_file(const path_type &p, std::error_code &ec) noexcept {
+		open(p, readonly, -1, 0, ec);
+	}
+	mapped_file(const path_type &p, mapmode flags, std::error_code &ec) noexcept {
+		open(p, flags, -1, 0, ec);
+	}
+
+	mapped_file(const path_type &p, mapmode flags, size_t length, std::error_code &ec) noexcept {
+		open(p, flags, length, 0, ec);
+	}
+
+	mapped_file(const path_type &p, mapmode flags, size_t length, size_t offset, std::error_code &ec) noexcept {
+		open(p, flags, length, offset, ec);
+	}
+
+
 	mapped_file(mapped_file &&);
 	mapped_file(const mapped_file &) = delete;
 
@@ -87,7 +103,20 @@ public:
 
 
 	void open(const path_type& p, mapmode flags, size_t length = -1, size_t offset = 0) {
-		base::open(p, flags, length, offset);
+		base::open(p, flags, length, offset, nullptr);
+	}
+
+	void open(const path_type &p, std::error_code &ec) noexcept {
+		base::open(p, readonly, -1, 0, &ec);
+	}
+	void open(const path_type &p, mapmode flags, std::error_code &ec) noexcept {
+		base::open(p, flags, -1, 0, &ec);
+	}
+	void open(const path_type &p, mapmode flags, size_t length, std::error_code &ec) noexcept {
+		base::open(p, flags, length, 0, &ec);
+	}
+	void open(const path_type &p, mapmode flags, size_t length, size_t offset, std::error_code &ec) noexcept {
+		base::open(p, flags, length, offset, &ec);
 	}
 
 
