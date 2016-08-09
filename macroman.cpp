@@ -81,7 +81,7 @@ std::string utf8_to_macroman(const std::string &s) {
 	rv.reserve(s.size());
 
 	unsigned cs = 0;
-	uint16_t tmp;
+	uint16_t tmp = 0;
 
 	for (unsigned char c : s) {
 		switch(cs) {
