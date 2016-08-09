@@ -1,10 +1,24 @@
 
 # CMAKE_INSTALL_PREFIX defaults to /usr/local.
 
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.1)
 project("mpw-shell")
 set (PROJECT_TYPE "CXX")
 set (PROJECT_NAME "MPW Shell")
+
+#
+# build config.h
+#
+
+INCLUDE (CheckFunctionExists)
+SET(CMAKE_EXTRA_INCLUDE_FILES stdio.h)
+CHECK_FUNCTION_EXISTS(dprintf HAVE_DPRINTF)
+SET(CMAKE_EXTRA_INCLUDE_FILES)
+
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+
+
+
 
 set(CMAKE_CXX_FLAGS "-g -Wall -Wno-unused-variable -Wno-multichar -O1")
 

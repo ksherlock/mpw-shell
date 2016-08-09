@@ -1,0 +1,7 @@
+#ifndef __mpw_shell_config_h__
+#define __mpw_shell_config_h__
+
+#cmakedefine HAVE_DPRINTF
+
+#endif
+
