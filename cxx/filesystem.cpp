@@ -269,10 +269,10 @@ namespace filesystem {
 	path current_path(error_code& ec) {
 
 		char *cp;
-		char buffer[PATH_MAX];
+		char buffer[PATH_MAX+1];
 
 		ec.clear();
-		cp = ::getcwd(buffer, sizeof(buffer));
+		cp = ::getcwd(buffer, PATH_MAX);
 		if (cp) return path(cp);
 
 		ec = error_code(errno, std::system_category());
@@ -304,7 +304,7 @@ namespace filesystem {
 
 	path canonical(const path& p, error_code& ec) {
 		char *cp;
-		char buffer[PATH_MAX];
+		char buffer[PATH_MAX+1];
 
 		ec.clear();
 		cp = realpath(p.c_str(), buffer);
@@ -316,7 +316,7 @@ namespace filesystem {
 	path canonical(const path& p, const path& base, error_code& ec) {
 
 		char *cp;
-		char buffer[PATH_MAX];
+		char buffer[PATH_MAX+1];
 		
 		ec.clear();
 
