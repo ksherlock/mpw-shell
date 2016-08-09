@@ -25,6 +25,7 @@
 #include <fcntl.h>
 
 #include "version.h"
+#include "config.h"
 
 namespace ToolBox {
 	std::string MacToUnix(const std::string path);
@@ -114,16 +115,23 @@ namespace {
 #define fputc DO_NOT_USE_FPUTC
 
 inline int fdputs(const char *data, int fd) {
-	auto rv = write(fd, data, strlen(data));  return rv < 0 ? EOF : rv;
+	auto rv = write(fd, data, strlen(data));
+	return rv < 0 ? EOF : rv;
+}
+
+inline int fdputs(const std::string &s, int fd) {
+	auto rv = write(fd, s.data(), s.size());
+	return rv < 0 ? EOF : rv;
 }
 
 inline int fdputc(int c, int fd) {
 	unsigned char tmp = c;
-	auto rv = write(fd, &tmp, 1);  return rv < 0 ? EOF : c;
+	auto rv = write(fd, &tmp, 1);
+	return rv < 0 ? EOF : c;
 }
 
 #ifdef HAVE_DPRINTF
-#define fdprintf(...) dprintf(__VA_ARGS__)
+#define fdprintf dprintf
 #else
 inline int fdprintf(int fd, const char *format, ...) {
 	char *cp = nullptr;
