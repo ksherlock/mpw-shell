@@ -119,6 +119,7 @@ int read_fd(phase1 &p, int fd) {
 }
 
 void launch_mpw(const Environment &env, const std::vector<std::string> &argv, const fdmask &fds);
+fs::path which(const Environment &env, const std::string &name);
 
 int read_make(phase1 &p1, phase2 &p2, Environment &env, const std::vector<std::string> &argv) {
 
@@ -299,6 +300,10 @@ void define(Environment &env, const std::string &s) {
 
 }
 
+/*
+ *
+ * todo:  prevent -r and -s (don't generate shell code)
+ */
 void make_help(void) {
 
 	#undef _
@@ -336,7 +341,8 @@ int make(int argc, char **argv) {
 	args.reserve(argc+1);
 	bool __ = false;
 
-	args.emplace_back("make");
+
+	args.push_back(""); // place-holder.
 
 	for (auto iter = argv; *iter; ++iter) {
 		std::string tmp(*iter);
@@ -385,6 +391,13 @@ int make(int argc, char **argv) {
 	read_file(p1, root() / "Startup");
 	e.startup(false);
 
+	auto path = which(e, "Make");
+	if (path.empty()) {
+		fputs("### MPW Shell - Command \"Make\" was not found.\n", stderr);
+		return -1;
+	}
+	e.set("command", path);
+	args[0] = path;
 
 	return read_make(p1, p2, e, args);
 
