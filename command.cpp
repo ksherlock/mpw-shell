@@ -550,8 +550,9 @@ int pipe_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 		lseek(fd, 0, SEEK_SET);
 
 		rv = children[1]->execute(e, pipe_fd | fds, throwup);
-
+		return e.status(rv, throwup);
 	}
+
 	if (children[0]) return children[0]->execute(e, fds, throwup);
 	if (children[1]) return children[1]->execute(e, fds, throwup);
 	return e.status(0, throwup);
