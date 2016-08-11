@@ -106,7 +106,7 @@
 
 
 			'-'  when eval
-				 %push_token => { tokens.emplace_back("+", '-'); };
+				 %push_token => { tokens.emplace_back("-", '-'); };
 
 			'!'  when eval
 				 %push_token => { tokens.emplace_back("!", '!'); };
