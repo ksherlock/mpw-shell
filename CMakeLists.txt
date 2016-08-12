@@ -11,9 +11,15 @@ set (PROJECT_NAME "MPW Shell")
 #
 
 INCLUDE (CheckFunctionExists)
+INCLUDE (CheckLibraryExists)
+
 SET(CMAKE_EXTRA_INCLUDE_FILES stdio.h)
 CHECK_FUNCTION_EXISTS(dprintf HAVE_DPRINTF)
 SET(CMAKE_EXTRA_INCLUDE_FILES)
+
+CHECK_LIBRARY_EXISTS(edit readline "" HAVE_LIBEDIT)
+CHECK_LIBRARY_EXISTS(readline readline "" HAVE_LIBREADLINE)
+CHECK_LIBRARY_EXISTS(history add_history "" HAVE_LIBHISTORY)
 
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
@@ -98,7 +104,18 @@ add_executable(mpw-shell mpw-shell.cpp  mpw-shell-token.cpp mpw-shell-expand.cpp
 	cxx/directory_iterator.cpp
 )
 
-target_link_libraries(mpw-shell edit)
+#
+# -ledit includes history stuff.  gnu -lreadline does not.
+#
+if(HAVE_LIBEDIT)
+	target_link_libraries(mpw-shell edit)
+elseif(HAVE_LIBREADLINE)
+	target_link_libraries(mpw-shell readline)
+	if (HAVE_LIBHISTORY)
+		target_link_libraries(mpw-shell history)
+	endif()
+endif()
+
 
 # all this for -std=c++14
 set_property (TARGET mpw-shell PROPERTY CXX_STANDARD 14)
