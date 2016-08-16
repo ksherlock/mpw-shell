@@ -12,13 +12,11 @@
 #include <sys/wait.h>
 
 #include "mpw-shell.h"
+#include "mpw_parser.h"
+
 #include "fdset.h"
 
 #include "macroman.h"
-
-#include "phase1.h"
-#include "phase2.h"
-#include "command.h"
 
 #include "cxx/mapped_file.h"
 #include "cxx/filesystem.h"
@@ -80,48 +78,60 @@ void init(Environment &env) {
 }
 
 
-int read_file(phase1 &p, const std::string &file) {
+
+int read_file(Environment &e, const std::string &file, const fdmask &fds) {
 	std::error_code ec;
 	const mapped_file mf(file, mapped_file::readonly, ec);
 	if (ec) {
 		fprintf(stderr, "# Error reading %s: %s\n", file.c_str(), ec.message().c_str());
-		return 0;
+		return e.status(-1, false);
 	}
 
-	p.process(mf.begin(), mf.end(), false);
+
+	mpw_parser p(e, fds);
+	e.status(0, false);
+
+	p.parse(mf.begin(), mf.end());
 	p.finish();
-	return 0;
+	return e.status();
 }
 
-int read_fd(phase1 &p, int fd) {
+
+int read_string(Environment &e, const std::string &s, const fdmask &fds) {
+	mpw_parser p(e, fds);
+	e.status(0, false);
+	p.parse(s);
+	p.finish();
+	return e.status();
+}
+
+
+int read_fd(Environment &e, int fd, const fdmask &fds) {
 
 	unsigned char buffer[2048];
 	ssize_t size;
+
+	mpw_parser p(e, fds);
+	e.status(0, false);
 
 	for (;;) {
 		size = read(fd, buffer, sizeof(buffer));
 		if (size < 0) {
 			if (errno == EINTR) continue;
-			perror("read: ");
-			return -1;
-		}
-		try {
-			if (size == 0) p.finish();
-			else p.process(buffer, buffer + size);
-		} catch(std::exception &ex) {
-			fprintf(stderr, "### %s\n", ex.what());
-			p.reset();
+			perror("read");
+			e.status(-1, false);
 		}
 		if (size == 0) break;
+		p.parse(buffer, buffer + size);
 	}
-
-	return 0;
+	p.finish();
+	return e.status();
 }
 
 void launch_mpw(const Environment &env, const std::vector<std::string> &argv, const fdmask &fds);
 fs::path which(const Environment &env, const std::string &name);
 
-int read_make(phase1 &p1, phase2 &p2, Environment &env, const std::vector<std::string> &argv) {
+int read_make(Environment &env, const std::vector<std::string> &argv) {
 
 	int out[2];
 	int ok;
@@ -153,10 +163,9 @@ int read_make(phase1 &p1, phase2 &p2, Environment &env, const std::vector<std::s
 	}
 
 	close(out[1]);
-	int rv = read_fd(p1, out[0]);
+	int rv = read_fd(env, out[0]);
 	close(out[0]);
-	p1.finish();
-	p2.finish();
+
 
 	// check for make errors.
 	for(;;) {
@@ -182,7 +191,7 @@ int read_make(phase1 &p1, phase2 &p2, Environment &env, const std::vector<std::s
 		exit(EX_OSERR);
 	}
 
-	return env.status();
+	return rv;
 }
 
 std::atomic<int> control_c{0};
@@ -196,7 +205,7 @@ void control_c_handler(int signal, siginfo_t *sinfo, void *context) {
 }
 
 
-int interactive(Environment &env, phase1 &p1, phase2& p2) {
+int interactive(Environment &env) {
 
 	std::string history_file = root();
 	history_file += ".history";
@@ -213,18 +222,18 @@ int interactive(Environment &env, phase1 &p1, phase2& p2) {
 
 	sigaction(SIGINT, &act, &old_act);
 
+	mpw_parser p(env, true);
 
 
 	for(;;) {
 		const char *prompt = "# ";
-		if (p1.continuation() || p2.continuation()) prompt = "> ";
+		if (p.continuation()) prompt = "> ";
 		char *cp = readline(prompt);
 		if (!cp) {
 			if (control_c) {
 				control_c = 0;
 				fprintf(stdout, "\n");
-				p1.abort();
-				p2.abort();
+				p.abort();
 				env.status(-9, false);
 				continue;
 			}
@@ -246,28 +255,16 @@ int interactive(Environment &env, phase1 &p1, phase2& p2) {
 			s = utf8_to_macroman(s);
 
 		s.push_back('\n');
-		try {
-			p1.process(s);
 
-		} catch(std::exception &ex) {
-			fprintf(stderr, "### %s\n", ex.what());
-			p1.reset();
-		}
+		p.parse(s);
 
 	}
-
-	try {
-		p1.finish();
-	} catch(std::exception &ex) {
-		fprintf(stderr, "### %s\n", ex.what());
-		p1.reset();
-	}
+	p.finish();
 
 	sigaction(SIGINT, &old_act, nullptr);
 
 	write_history(history_file.c_str());
 	fprintf(stdout, "\n");
-
 
 	return 0;
 }
@@ -361,34 +358,8 @@ int make(int argc, char **argv) {
 
 	}
 
-	phase1 p1;
-	phase2 p2;
-
-	p1 >>= [&p2](std::string &&s) {
-		if (s.empty()) p2.finish();
-		else p2(std::move(s));
-	};
-
-	p2 >>= [&e](command_ptr_vector &&v) {
-
-		for (auto iter = v.begin(); iter != v.end(); ++iter) {
-			auto &ptr = *iter;
-			fdmask fds;
-			try {
-				ptr->execute(e, fds);
-			} catch (execution_of_input_terminated &ex) {
-				control_c = 0;
-				fprintf(stderr, "### %s\n", ex.what());
-				if (e.exit()) 
-					exit(ex.status());
-				e.status(ex.status(), false);
-			}
-		}
-	};
-
-
 	e.startup(true);
-	read_file(p1, root() / "Startup");
+	read_file(e, root() / "Startup");
 	e.startup(false);
 
 	auto path = which(e, "Make");
@@ -399,7 +370,7 @@ int make(int argc, char **argv) {
 	e.set("command", path);
 	args[0] = path;
 
-	return read_make(p1, p2, e, args);
+	return read_make(e, args);
 
 }
 
@@ -517,40 +488,14 @@ int main(int argc, char **argv) {
 
 
 
-
-
-	phase1 p1;
-	phase2 p2;
-
-	p1 >>= [&p2](std::string &&s) {
-		if (s.empty()) p2.finish();
-		else p2(std::move(s));
-	};
-
-	p2 >>= [&e](command_ptr_vector &&v) {
-
-		for (auto iter = v.begin(); iter != v.end(); ++iter) {
-			auto &ptr = *iter;
-			fdmask fds;
-			try {
-				ptr->execute(e, fds);
-			} catch (execution_of_input_terminated &ex) {
-				control_c = 0;
-				if (!(ptr->terminal() && ++iter == v.end())) {
-					fprintf(stderr, "### %s\n", ex.what());
-				}
-				e.status(ex.status(), false);
-				return;
-			}
-		}
-	};
-
 	if (!cflag) fprintf(stdout, "MPW Shell " VERSION "\n");
 	if (!fflag) {
 		fs::path startup = root() / "Startup";
 		e.startup(true);
+		mpw_parser p(e);
+
 		try {
-			read_file(p1, startup);
+			read_file(e, startup);
 		} catch (const std::system_error &ex) {
 			fprintf(stderr, "### %s: %s\n", startup.c_str(), ex.what());
 		}
@@ -558,18 +503,14 @@ int main(int argc, char **argv) {
 	}
 
 	if (cflag) {
-		std::string s(cflag);
-		s.push_back('\n');
-		p1.process(s, true);
-		p2.finish();
+		read_string(e, cflag);
 		exit(e.status());
 	}
 
 	if (isatty(STDIN_FILENO))
-		interactive(e, p1, p2);
+		interactive(e);
 	else 
-		read_fd(p1, STDIN_FILENO);
-	p2.finish();
+		read_fd(e, STDIN_FILENO);
 
 	exit(e.status());
 }

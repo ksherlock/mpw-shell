@@ -8,6 +8,7 @@
 #include <cstdint>
 
 #include "environment.h"
+#include "fdset.h"
 
 const unsigned char escape = 0xb6;
 
@@ -49,7 +50,7 @@ public:
 
 
 std::vector<token> tokenize(std::string &s, bool eval = false);
-std::string expand_vars(const std::string &s, const class Environment &);
+std::string expand_vars(const std::string &s, class Environment &, const fdmask &fds = fdmask());
 
 //std::string quote(std::string &&s);
 std::string quote(const std::string &s);
@@ -65,6 +66,11 @@ void parse_tokens(std::vector<token> &&tokens, process &p);
 
 int32_t evaluate_expression(const std::string &name, std::vector<token> &&tokens);
 
+
+
+int read_file(Environment &e, const std::string &file, const fdmask &fds = fdmask());
+int read_string(Environment &e, const std::string &s, const fdmask &fds = fdmask());
+int read_fd(Environment &e, int fd, const fdmask &fds = fdmask());
 
 
 #endif

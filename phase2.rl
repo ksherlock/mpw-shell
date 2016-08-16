@@ -4,9 +4,8 @@
  *
  */
 
-#include "phase2-parser.h"
 #include "phase2.h"
-#include "command.h"
+#include "phase3.h"
 
 %%{
 	machine main;
@@ -217,9 +216,7 @@ void phase2::flush() {
 	while (!scratch.empty() && isspace(scratch.back())) scratch.pop_back();
 
 
-	if (!scratch.empty()) {
-		parse(classify(), std::move(scratch));
-	}
+	if (!scratch.empty()) parse(classify(), std::move(scratch));
 
 	type = 0;
 	pcount = 0;
@@ -242,13 +239,13 @@ bool phase2::special() {
 	}
 }
 
-void phase2::process(const std::string &line) {
+void phase2::parse(int type, std::string &&s) {
+	if (_then) _then(type, std::move(s));
+}
+
+void phase2::parse(std::string &&line) {
 	
 	//fprintf(stderr, "-> %s\n", line.c_str());
-
-	// still needed?
-	if (line.empty()) { finish(); return; }
-
 
 	int cs;
 	const unsigned char *p = (const unsigned char *)line.data();
@@ -264,81 +261,19 @@ void phase2::process(const std::string &line) {
 	%% write exec;
 
 	flush();
-	// 2 NLs to make the stack reduce.  harmless if in a multi-line constuct.
-	parse(NL, "");
-	parse(NL, "");
-
-	exec();
+	if (_then) {
+		_then(NL, "");
+		_then(NL, "");
+	}
 }
 
 void phase2::finish() {
-	parse(0, "");
-	exec();
 }
 
-void phase2::parse(int token, std::string &&s) {
-	if (parser) parser->parse(token, std::move(s));
-}
+void phase2::reset() {
 
-void phase2::exec() {
-
-	if (pipe_to && parser) {
-		command_ptr_vector tmp;
-		for (auto &p : parser->command_queue) {
-			if (p) tmp.emplace_back(std::move(p));
-		}
-		parser->command_queue.clear();
-
-		if (!tmp.empty()) pipe_to(std::move(tmp));
-	}
-	
-}
-
-phase2::phase2() {
-	parser = phase2_parser::make();
-	//parser->trace(stdout, " ] ");
-
-}
-
-void phase2::abort() {
-	parser = nullptr;
-	parser = phase2_parser::make();
-}
-
-#pragma mark - phase2_parser
-
-void phase2_parser::parse_accept() {
-	error = false;
-}
-
-void phase2_parser::parse_failure() {
-	error = false;
-}
-
-void phase2_parser::syntax_error(int yymajor, std::string &yyminor) {
-/*
-	switch (yymajor) {
-	case END:
-		fprintf(stderr, "### MPW Shell - Extra END command.\n");
-		break;
-
-	case RPAREN:
-		fprintf(stderr, "### MPW Shell - Extra ) command.\n");
-		break;
-
-	case ELSE:
-	case ELSE_IF:
-		fprintf(stderr, "### MPW Shell - ELSE must be within IF ... END.\n");
-		break;
-
-	default:
-		fprintf(stderr, "### Parse error near %s\n", yyminor.c_str());
-		break;
-	}
-*/
-
-	
-	fprintf(stderr, "### MPW Shell - Parse error near %s\n", yymajor ? yyminor.c_str() : "EOF");
-	error = true;
+	type = 0;
+	pcount = 0;
+	scratch.clear();
 }
 

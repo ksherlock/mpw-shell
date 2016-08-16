@@ -150,19 +150,10 @@ text:
 }
 
 
-void phase1::process(const std::string &s, bool final) {
-	
-	for (auto c : s) {
-		cs = process(c, cs);
-	}
-	if (final) finish();
-}
-
-void phase1::process(const unsigned char *begin, const unsigned char *end, bool final) {
+void phase1::parse(const unsigned char *begin, const unsigned char *end) {
 	while (begin != end) {
 		cs = process(*begin++, cs);
 	}
-	if (final) finish();
 }
 
 void phase1::finish() {
@@ -181,7 +172,6 @@ void phase1::reset() {
 void phase1::flush() {
 	multiline = false;
 	if (scratch.empty()) return;
-	// strip trailing whitespace?
-	if (pipe_to) pipe_to(std::move(scratch));
+	if (_then) _then(std::move(scratch));
 	scratch.clear();
 }

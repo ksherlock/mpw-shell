@@ -85,17 +85,17 @@ RAGEL_TARGET(value value.rl value.cpp COMPILE_FLAGS "-p -G2")
 
 # need to copy all OUTPUT file to the build dir
 add_custom_command(
-	OUTPUT phase2-parser.cpp phase2-parser.h phase2-parser.out
-	COMMAND lemon++ phase2-parser.lemon
-	COMMAND mv -f phase2-parser.cpp phase2-parser.h phase2-parser.out ${CMAKE_CURRENT_BINARY_DIR}/
-	MAIN_DEPENDENCY phase2-parser.lemon 
+	OUTPUT phase3.cpp phase3.h phase3.out
+	COMMAND lemon++ phase3.lemon
+	COMMAND mv -f phase3.cpp phase3.h phase3.out ${CMAKE_CURRENT_BINARY_DIR}/
+	MAIN_DEPENDENCY phase3.lemon 
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 
 add_executable(mpw-shell mpw-shell.cpp  mpw-shell-token.cpp mpw-shell-expand.cpp 
-	mpw-shell-parser.cpp value.cpp mpw-shell-quote.cpp 
-	phase1.cpp phase2.cpp phase2-parser.cpp command.cpp environment.cpp builtins.cpp 
+	mpw-shell-parser.cpp mpw_parser.cpp value.cpp mpw-shell-quote.cpp 
+	phase1.cpp phase2.cpp phase3.cpp command.cpp environment.cpp builtins.cpp 
 	pathnames.cpp
 	macroman.cpp
 	cxx/mapped_file.cpp

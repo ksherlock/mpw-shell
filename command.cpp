@@ -1,5 +1,5 @@
 #include "command.h"
-#include "phase2-parser.h"
+#include "phase3.h"
 #include "environment.h"
 #include "fdset.h"
 #include "builtins.h"
@@ -198,6 +198,7 @@ namespace {
 		{"catenate", builtin_catenate},
 		{"directory", builtin_directory},
 		{"echo", builtin_echo},
+		{"execute", builtin_execute},
 		{"exists", builtin_exists},
 		{"export", builtin_export},
 		{"parameters", builtin_parameters},
@@ -209,6 +210,10 @@ namespace {
 		{"unset", builtin_unset},
 		{"version", builtin_version},
 		{"which", builtin_which},
+
+		// not in MPW.
+		{"true", builtin_true},
+		{"false", builtin_false},
 	};
 
 
@@ -278,9 +283,6 @@ namespace {
 }
 
 
-
-//std::string expand_vars(const std::string &s, const class Environment &);
-
 command::~command()
 {}
 
@@ -293,7 +295,7 @@ command::~command()
 
 
 template<class F>
-int exec(std::string command, Environment &env, bool throwup, F &&fx) {
+int exec(std::string command, Environment &env, const fdmask &fds, bool throwup, F &&fx) {
 
 	bool echo = true;
 	int rv = 0;
@@ -302,7 +304,7 @@ int exec(std::string command, Environment &env, bool throwup, F &&fx) {
 
 	try {
 		process p;
-		command = expand_vars(command, env);
+		command = expand_vars(command, env, fds);
 		auto tokens = tokenize(command, false);
 		if (tokens.empty()) return 0;
 		parse_tokens(std::move(tokens), p);
@@ -330,7 +332,7 @@ int exec(std::string command, Environment &env, bool throwup, F &&fx) {
 int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
 
-	return exec(text, env, throwup, [&](process &p){
+	return exec(text, env, fds, throwup, [&](process &p){
 
 		fdmask newfds = p.fds | fds;
 
@@ -367,7 +369,7 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 }
 
 template<class F>
-int eval_exec(std::string command, Environment &env, bool throwup, F &&fx){
+int eval_exec(std::string command, Environment &env, const fdmask &fds, bool throwup, F &&fx){
 
 	std::string name;
 	bool echo = true;
@@ -376,7 +378,7 @@ int eval_exec(std::string command, Environment &env, bool throwup, F &&fx){
 	if (control_c) throw execution_of_input_terminated();
 
 	try {
-		command = expand_vars(command, env);
+		command = expand_vars(command, env, fds);
 		auto tokens = tokenize(command, true);
 
 		if (tokens.empty()) return 0;
@@ -406,29 +408,8 @@ int eval_exec(std::string command, Environment &env, bool throwup, F &&fx){
 
 int evaluate_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
-#if 0
-	if (control_c) throw execution_of_input_terminated();
 
-	std::string s = expand_vars(text, env);
-
-	env.set("command", "evaluate");
-
-	env.echo("%s", s.c_str());
-
-	try {
-		auto tokens = tokenize(s, true);
-		if (tokens.empty()) return 0;
-
-		int status = builtin_evaluate(env, std::move(tokens), fds);
-
-		return env.status(status, throwup);
-	} catch (std::exception &e) {
-		fprintf(stderr, "%s\n", e.what());
-		return env.status(1, throwup);
-	}
-#endif
-
-	return eval_exec(text, env, throwup, [&](token_vector &tokens){
+	return eval_exec(text, env, fds, throwup, [&](token_vector &tokens){
 		env.set("command", "evaluate");
 		return builtin_evaluate(env, std::move(tokens), fds);
 	});
@@ -439,7 +420,7 @@ int evaluate_command::execute(Environment &env, const fdmask &fds, bool throwup)
 
 int break_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
-	return eval_exec(text, env, throwup, [&](token_vector &tokens){
+	return eval_exec(text, env, fds, throwup, [&](token_vector &tokens){
 		env.set("command", "break");
 		if (!env.loop()) throw break_error();
 		int status = evaluate(BREAK, std::move(tokens), env);
@@ -447,30 +428,11 @@ int break_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 		return status;
 	});
 
-#if 0
-	if (control_c) throw execution_of_input_terminated();
-
-	std::string s = expand_vars(text, env);
-
-	env.set("command", "break");
-
-	env.echo("%s", s.c_str());
-	if (!env.loop()) {
-		fputs("### MPW Shell - Break must be within for or loop.\n", stderr);
-		return env.status(-3, throwup);
-	}
-
-	// check/evaluate if clause.
-	int status = evaluate(BREAK, s, env);
-	if (status > 0)
-		throw break_command_t();
-	return env.status(status, throwup);
-#endif
 }
 
 int continue_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
-	return eval_exec(text, env, throwup, [&](token_vector &tokens){
+	return eval_exec(text, env, fds, throwup, [&](token_vector &tokens){
 		env.set("command", "continue");
 		if (!env.loop()) throw continue_error();
 		int status = evaluate(CONTINUE, std::move(tokens), env);
@@ -478,26 +440,6 @@ int continue_command::execute(Environment &env, const fdmask &fds, bool throwup)
 		return status;
 	});
 
-#if 0
-	if (control_c) throw execution_of_input_terminated();
-
-	std::string s = expand_vars(text, env);
-
-	env.set("command", "continue");
-
-	env.echo("%s", s.c_str());
-	if (!env.loop()) {
-		fputs("### MPW Shell - Continue must be within for or loop.\n", stderr);
-		return env.status(-3, throwup);
-	}
-
-
-	// check/evaluate if clause.
-	int status = evaluate(CONTINUE, s, env);
-	if (status > 0)
-		throw continue_command_t();
-	return env.status(status, throwup);
-#endif
 }
 
 int or_command::execute(Environment &e, const fdmask &fds, bool throwup) {
@@ -577,7 +519,7 @@ int error_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 		return e.status(-3);
 	}
 
-	std::string s = expand_vars(text, e);
+	std::string s = expand_vars(text, e, fds);
 
 	e.echo("%s", s.c_str());
 
@@ -601,7 +543,7 @@ int error_command::execute(Environment &e, const fdmask &fds, bool throwup) {
 }
 
 template<class F>
-int begin_end_exec(std::string begin, std::string end, Environment &env, bool throwup, F &&fx) {
+int begin_end_exec(std::string begin, std::string end, Environment &env, const fdmask &fds, bool throwup, F &&fx) {
 
 
 	bool echo = true;
@@ -611,8 +553,8 @@ int begin_end_exec(std::string begin, std::string end, Environment &env, bool th
 
 	try {
 		process p;
-		begin = expand_vars(begin, env);
-		end = expand_vars(end, env);
+		begin = expand_vars(begin, env, fds);
+		end = expand_vars(end, env, fds);
 
 		auto b = tokenize(begin, true);
 		auto e = tokenize(end, false);
@@ -639,12 +581,11 @@ int begin_end_exec(std::string begin, std::string end, Environment &env, bool th
 	}
 
 	return env.status(rv, throwup);
-
 }
 
 int begin_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
-	return begin_end_exec(begin, end, env, throwup, [&](token_vector &b, process &p){
+	return begin_end_exec(begin, end, env, fds, throwup, [&](token_vector &b, process &p){
 
 		env.set("command", type == BEGIN ? "end" : ")");
 		if (b.size() != 1) {
@@ -664,53 +605,12 @@ int begin_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
 		return rv;
 	});
-
-#if 0
-
-	std::string b = expand_vars(begin, env);
-	std::string e = expand_vars(end, env);
-
-
-	env.set("command", type == BEGIN ? "end" : ")");
-
-	// echo!
-	env.echo("%s ... %s",
-		b.c_str(),
-		e.c_str()
-	);
-
-
-
-	// tokenize the begin and end commands.
-	// begin may not have extra arguments.  end may have redirection.
-
-	auto bt = tokenize(b, true);
-	if (bt.size() != 1) {
-		fprintf(stderr, "### Begin - Too many parameters were specified.\n");
-		fprintf(stderr, "Usage - Begin\n");
-		return env.status(-3);
-	}
-
-	fdmask newfds;
-	int status = check_ends(e, newfds);
-	newfds |= fds;
-	if (status) return env.status(status);
-
-	int rv;
-	env.indent_and([&]{
-		rv = vector_command::execute(env, newfds);		
-	});
-
-	env.echo("%s", type == BEGIN ? "end" : ")");
-
-	return env.status(rv);
-#endif
 }
 
 
 int loop_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
-	return begin_end_exec(begin, end, env, throwup, [&](token_vector &b, process &p){
+	return begin_end_exec(begin, end, env, fds, throwup, [&](token_vector &b, process &p){
 
 		env.set("command", "end");
 		if (b.size() != 1) {
@@ -742,58 +642,11 @@ int loop_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
 		return rv;
 	});
-
-
-#if 0
-	std::string b = expand_vars(begin, env);
-	std::string e = expand_vars(end, env);
-
-
-	env.set("command", "end");
-
-	// echo!
-	env.echo("%s ... %s",
-		b.c_str(),
-		e.c_str()
-	);
-
-	// check for extra tokens...
-	auto bt = tokenize(b, true);
-	if (bt.size() != 1) {
-		fprintf(stderr, "### Loop - Too many parameters were specified.\n");
-		fprintf(stderr, "Usage - Loop\n");
-		return env.status(-3);
-	}
-
-	fdmask newfds;
-	int status = check_ends(e, newfds);
-	newfds |= fds;
-	if (status) return env.status(status);
-
-	int rv = 0;
-	for(;;) {
-
-		if (control_c) throw execution_of_input_terminated();
-
-		try {
-			env.loop_indent_and([&]{
-				rv = vector_command::execute(env, newfds);		
-			});
-		}
-		catch (break_command_t &ex) {
-			env.echo("end");
-			break;
-		}
-		catch (continue_command_t &ex) {}
-		env.echo("end");
-	}
-	return env.status(rv);
-#endif
 }
 
 int for_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
-	return begin_end_exec(begin, end, env, throwup, [&](token_vector &b, process &p){
+	return begin_end_exec(begin, end, env, fds, throwup, [&](token_vector &b, process &p){
 
 		env.set("command", "end");
 
@@ -827,56 +680,6 @@ int for_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 
 		return rv;
 	});
-
-#if 0
-	std::string b = expand_vars(begin, env);
-	std::string e = expand_vars(end, env);
-
-
-	env.set("command", "end");
-
-	// echo!
-	env.echo("%s ... %s",
-		b.c_str(),
-		e.c_str()
-	);
-
-	// check for extra tokens...
-	auto bt = tokenize(b, true);
-	if (bt.size() < 3 || strcasecmp(bt[2].string.c_str(), "in")) {
-		fprintf(stderr, "### For - Missing in keyword.\n");
-		fprintf(stderr, "Usage - For name in [word...]\n");
-		return env.status(-3);
-	}
-
-	fdmask newfds;
-	int status = check_ends(e, newfds);
-	newfds |= fds;
-	if (status) return env.status(status);
-
-	int rv = 0;
-	for (int i = 3; i < bt.size(); ++i ) {
-
-		if (control_c) throw execution_of_input_terminated();
-
-		env.set(bt[1].string, bt[i].string);
-
-		try {
-			env.loop_indent_and([&]{
-				rv = vector_command::execute(env, newfds);		
-			});
-		}
-		catch (break_command_t &ex) {
-			env.echo("end");
-			break;
-		}
-		catch (continue_command_t &ex) {}
-		env.echo("end");
-	}
-
-	return env.status(rv);
-
-#endif
 }
 
 
@@ -901,7 +704,7 @@ int if_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 		int tmp;
 		if (first) {
 			first = false;
-			tmp = begin_end_exec(c->clause, end, env, false, [&](token_vector &b, process &p){
+			tmp = begin_end_exec(c->clause, end, env, fds, false, [&](token_vector &b, process &p){
 
 				newfds = p.fds | fds;
 
@@ -923,7 +726,7 @@ int if_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 		}
 		else {
 		// second...
-			tmp = eval_exec(c->clause, env, false, [&](token_vector &b){
+			tmp = eval_exec(c->clause, env, fds, false, [&](token_vector &b){
 				if (skip || error) return 0;
 
 				int status = evaluate(c->type, std::move(b), env);
@@ -946,49 +749,5 @@ int if_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 	env.echo("end");
 	if (error) return env.status(error, throwup);
 	return env.status(rv, throwup);
-
-#if 0
-
-
-
-
-	int rv = 0;
-	bool ok = false;
-
-	std::string e = expand_vars(end, env);
-
-	env.set("command", "end");
-
-	// parse end for indirection.
-	fdmask newfds;
-	int status = check_ends(e, newfds);
-	newfds |= fds;
-	if (status) {
-		rv = status;
-		ok = true;
-	}
-
-	for (auto &c : clauses) {
-		std::string s = expand_vars(c->clause, env);
-
-		if (c->type == IF)
-			env.echo("%s ... %s", s.c_str(), e.c_str());
-		else
-			env.echo("%s", s.c_str());
-
-		if (ok) continue;
-
-		int tmp = evaluate(c->type, s, env);
-		if (tmp < 0) { ok = true; rv = tmp; continue; }
-		if (tmp == 0) continue;
-
-		env.indent_and([&](){
-			rv = c->execute(env, newfds);
-		});
-	}
-
-	env.echo("end");
-	return env.status(rv);
-#endif
 }
 

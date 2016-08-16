@@ -855,12 +855,15 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 			"catenate",
 			"directory",
 			"echo",
+			"execute",
 			"exists",
 			"export",
+			"false", // not in MPW
 			"parameters",
 			"quote",
 			"set",
 			"shift",
+			"true", // not in MPW
 			"unalias",
 			"unexport",
 			"unset",
@@ -1033,4 +1036,24 @@ int builtin_true(Environment &, const std::vector<std::string> &, const fdmask &
 
 int builtin_false(Environment &, const std::vector<std::string> &, const fdmask &) {
 	return 1;
+}
+
+
+int builtin_execute(Environment &e, const std::vector<std::string> &tokens, const fdmask &fds) {
+
+	// runs argv[1] in the current environment. unlike MPW, argv[1] must be a script.
+	// special enhancement -- '-' means execute stdin.
+
+	if (tokens.size() < 2) return 0;
+	std::string filename = tokens[1];
+	if (filename == "-") {
+		// since we're parsing stdin, don't let any children read it. [???]
+		fdset new_fds;
+		int fd = open("/dev/null", O_RDONLY);
+		new_fds.set(0, fd);
+
+		return read_fd(e, fds[0], new_fds | fds);
+	}
+
+	return read_file(e, filename, fds);
 }

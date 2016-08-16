@@ -6,19 +6,19 @@
 
 %include {
 
-#include "phase2.h"
+#include "phase3_parser.h"
 #include "command.h"
-#define LEMON_SUPER phase2_parser
-#include "phase2-parser.h"
+#define LEMON_SUPER phase3
 }
+
 
 %code {
 	
-std::unique_ptr<phase2_parser> phase2_parser::make() {
+std::unique_ptr<phase3> phase3::make() {
 	return std::make_unique<yypParser>();
 }
 
-bool phase2_parser::continuation() const {
+bool phase3::continuation() const {
 	yypParser *self = (yypParser *)this;
 
 	for (const auto &e : *self) {
@@ -35,6 +35,43 @@ bool phase2_parser::continuation() const {
 	}
 	return false;
 }
+
+
+void phase3::parse_accept() {
+	error = false;
+}
+
+void phase3::parse_failure() {
+	error = false;
+}
+
+void phase3::syntax_error(int yymajor, std::string &yyminor) {
+/*
+	switch (yymajor) {
+	case END:
+		fprintf(stderr, "### MPW Shell - Extra END command.\n");
+		break;
+
+	case RPAREN:
+		fprintf(stderr, "### MPW Shell - Extra ) command.\n");
+		break;
+
+	case ELSE:
+	case ELSE_IF:
+		fprintf(stderr, "### MPW Shell - ELSE must be within IF ... END.\n");
+		break;
+
+	default:
+		fprintf(stderr, "### Parse error near %s\n", yyminor.c_str());
+		break;
+	}
+*/
+
+	
+	fprintf(stderr, "### MPW Shell - Parse error near %s\n", yymajor ? yyminor.c_str() : "EOF");
+	error = true;
+}
+
 
 }
 

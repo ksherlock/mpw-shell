@@ -4,6 +4,8 @@
 #include <string>
 #include <unordered_map>
 #include <stdexcept>
+#include <system_error>
+#include <algorithm>
 
 #include <stdio.h>
 
@@ -42,16 +44,29 @@
 		fgoto *xcs;
 	}
 
-	action einit{ /* einit */ ev.clear(); xcs = fcurs; fgoto estring_state; }
-	action epush{ /* epush */ ev.push_back(fc); }
-	action efinish1{
+	action einit { /* einit */ ev.clear(); xcs = fcurs; fgoto estring_state; }
+	action epush { /* epush */ ev.push_back(fc); }
+	action efinish1 {
 		/* efinish1 */
+
+		/*
 		throw std::runtime_error("MPW Shell - `...` not yet supported.");
+		*/
+
+		std::string s = subshell(ev, env, fds);
+		scratch.append(s);
+
 		fgoto *xcs;
 	}
-	action efinish2{
+	action efinish2 {
 		/* efinish2 */
-		throw std::runtime_error("MPW Shell - `...` not yet supported.");
+
+		std::string s = subshell(ev, env, fds);
+		for (auto c : s) {
+			if (c == '\'' || c == '"' ) scratch.push_back(escape);
+			scratch.push_back(c);
+		}
+
 		fgoto *xcs;
 	}
 
@@ -110,9 +125,48 @@
 
 namespace {
 	%% write data;
+
+
+std::string subshell(const std::string &s, Environment &env, const fdmask &fds) {
+	
+
+	char temp[32] = "/tmp/mpw-shell-XXXXXXXX";
+
+	int fd = mkstemp(temp);
+	unlink(temp);
+
+	fdset new_fds;
+	new_fds.set(1, fd);
+
+	int rv = 0;
+	env.indent_and([&](){
+
+		rv = read_string(env, s, new_fds | fds);
+
+	});
+
+	std::string tmp;
+	lseek(fd, 0, SEEK_SET);
+	for(;;) {
+		uint8_t buffer[1024];
+		ssize_t len = read(fd, buffer, sizeof(buffer));
+		if (len == 0) break;
+		if (len < 0) {
+			if (errno == EINTR) continue;
+			throw std::system_error(errno, std::system_category(), "read");
+		}
+		tmp.append(buffer, buffer + len);
+	}
+	std::transform(tmp.begin(), tmp.end(), tmp.begin(), [](uint8_t x){
+		if (x == '\r' || x == '\n') x = ' ';
+		return x;
+	});
+	return tmp;
 }
 
-std::string expand_vars(const std::string &s, const Environment &env) {
+}
+
+std::string expand_vars(const std::string &s, Environment &env, const fdmask &fds) {
 	if (s.find_first_of("{`", 0, 2) == s.npos) return s;
 
 	int cs;
