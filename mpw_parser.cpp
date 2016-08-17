@@ -1,3 +1,4 @@
+#include <algorithm>
 
 #include "mpw_parser.h"
 #include "phase3_parser.h"
