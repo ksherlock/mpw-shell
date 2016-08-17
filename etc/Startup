@@ -49,3 +49,9 @@ set -e MWCIncludes "{CIncludes}"
 set -e ARMCIncludes "{MPW}Interfaces:ARMCIncludes:"
 
 set -e AsmMatOpts "-t 4"
+
+# customizations can go in the UserStartup file.
+if `exists {MPW}UserStartup` != ""
+	execute {MPW}UserStartup
+end
+
