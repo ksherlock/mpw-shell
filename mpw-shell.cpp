@@ -91,8 +91,12 @@ int read_file(Environment &e, const std::string &file, const fdmask &fds) {
 	mpw_parser p(e, fds);
 	e.status(0, false);
 
-	p.parse(mf.begin(), mf.end());
-	p.finish();
+	try {
+		p.parse(mf.begin(), mf.end());
+		p.finish();
+	} catch(const execution_of_input_terminated &ex) {
+		return ex.status();
+	}
 	return e.status();
 }
 
@@ -100,9 +104,14 @@ int read_file(Environment &e, const std::string &file, const fdmask &fds) {
 int read_string(Environment &e, const std::string &s, const fdmask &fds) {
 	mpw_parser p(e, fds);
 	e.status(0, false);
-	p.parse(s);
-	p.finish();
+	try {
+		p.parse(s);
+		p.finish();
+	} catch(const execution_of_input_terminated &ex) {
+		return ex.status();
+	}
 	return e.status();
+
 }
 
 
@@ -114,17 +123,21 @@ int read_fd(Environment &e, int fd, const fdmask &fds) {
 	mpw_parser p(e, fds);
 	e.status(0, false);
 
-	for (;;) {
-		size = read(fd, buffer, sizeof(buffer));
-		if (size < 0) {
-			if (errno == EINTR) continue;
-			perror("read");
-			e.status(-1, false);
+	try {
+		for (;;) {
+			size = read(fd, buffer, sizeof(buffer));
+			if (size < 0) {
+				if (errno == EINTR) continue;
+				perror("read");
+				e.status(-1, false);
+			}
+			if (size == 0) break;
+			p.parse(buffer, buffer + size);
 		}
-		if (size == 0) break;
-		p.parse(buffer, buffer + size);
+		p.finish();
+	} catch(const execution_of_input_terminated &ex) {
+		return ex.status();
 	}
-	p.finish();
 	return e.status();
 }
 
@@ -498,19 +511,28 @@ int main(int argc, char **argv) {
 			read_file(e, startup);
 		} catch (const std::system_error &ex) {
 			fprintf(stderr, "### %s: %s\n", startup.c_str(), ex.what());
+		} catch (const quit_command_t &) {
 		}
+
 		e.startup(false);
 	}
 
-	if (cflag) {
-		read_string(e, cflag);
-		exit(e.status());
+	try {
+
+		int rv = 0;
+		if (cflag) {
+			rv = read_string(e, cflag);
+			exit(rv);
+		}
+
+		if (isatty(STDIN_FILENO))
+			rv = interactive(e);
+		else 
+			rv = read_fd(e, STDIN_FILENO);
+
+		exit(rv);
 	}
-
-	if (isatty(STDIN_FILENO))
-		interactive(e);
-	else 
-		read_fd(e, STDIN_FILENO);
-
-	exit(e.status());
+	catch (const quit_command_t &) {
+		exit(0);
+	}
 }

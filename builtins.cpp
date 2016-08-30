@@ -4,6 +4,7 @@
 #include "fdset.h"
 #include "value.h"
 #include "environment.h"
+#include "error.h"
 
 #include <string>
 #include <vector>
@@ -279,22 +280,14 @@ static int export_common(Environment &env, bool export_or_unexport, const std::v
 
 	const char *name = export_or_unexport ? "Export" : "Unexport";
 
-	struct {
-		int _r = 0;
-		int _s = 0;
-	} flags;
+	bool _r = false;
+	bool _s = false;
 	bool error = false;
 
-	std::vector<std::string> argv = getopt(tokens, [&](char c){
-		switch(c) {
-			case 'r':
-			case 'R':
-				flags._r = true;
-				break;
-			case 's':
-			case 'S':
-				flags._s = true;
-				break;
+	auto argv = getopt(tokens, [&](char c){
+		switch(tolower(c)) {
+			case 'r': _r = true; break;
+			case 's': _s = true; break;
 			default:
 				fdprintf(stderr, "### %s - \"-%c\" is not an option.\n", name, c);
 				error = true;
@@ -308,7 +301,7 @@ static int export_common(Environment &env, bool export_or_unexport, const std::v
 	}
 
 	if (argv.empty()) {
-		if (flags._r && flags._s) goto conflict;
+		if (_r && _s) goto conflict;
 
 		// list of exported vars.
 		// -r will generate unexport commands for exported variables.
@@ -320,14 +313,14 @@ static int export_common(Environment &env, bool export_or_unexport, const std::v
 		for (const auto &kv : env) {
 			const std::string& vname = kv.first;
 			if (kv.second == export_or_unexport)
-				fdprintf(stdout, "%s%s\n", flags._s ? "" : name, quote(vname).c_str());
+				fdprintf(stdout, "%s%s\n", _s ? "" : name, quote(vname).c_str());
 		}
 		return 0;
 	}
 	else {
 		// mark as exported.
 
-		if (flags._r || flags._s) goto conflict;
+		if (_r || _s) goto conflict;
 
 		for (std::string s : argv) {
 			auto iter = env.find(s);
@@ -509,12 +502,9 @@ int builtin_directory(Environment &env, const std::vector<std::string> &tokens, 
 	bool error = false;
 
 	std::vector<std::string> argv = getopt(tokens, [&](char c){
-		switch(c)
+		switch(tolower(c))
 		{
-			case 'q':
-			case 'Q':
-				q = true;
-				break;
+			case 'q': q = true; break;
 			default:
 				fdprintf(stderr, "### Directory - \"-%c\" is not an option.\n", c);
 				error = true;
@@ -585,24 +575,12 @@ int builtin_exists(Environment &env, const std::vector<std::string> &tokens, con
 	std::vector<std::string> argv = getopt(tokens, [&](char c){
 		switch(tolower(c))
 		{
-			case 'a':
-				_a = true;
-				break;
-			case 'd':
-				_d = true;
-				break;
-			case 'f':
-				_f = true;
-				break;
-			case 'n':
-				_n = true;
-				break;
-			case 'q':
-				_q = true;
-				break;
-			case 'w':
-				_w = true;
-				break;
+			case 'a': _a = true; break;
+			case 'd': _d = true; break;
+			case 'f': _f = true; break;
+			case 'n': _n = true; break;
+			case 'q': _q = true; break;
+			case 'w': _w = true; break;
 			default:
 				fdprintf(stderr, "### Exists - \"-%c\" is not an option.\n", c);
 				error = true;
@@ -773,15 +751,15 @@ int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask
 int builtin_which(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
 
 	// which [-a] [-p] [command]
-	bool a = false;
-	bool p = false;
+	bool _a = false;
+	bool _p = false;
 	bool error = false;
 
 	std::vector<std::string> argv = getopt(tokens, [&](char c){
-		switch(c)
+		switch(tolower(c))
 		{
-			case 'a': case 'A': a = true; break;
-			case 'p': case 'P': p = true; break;
+			case 'a': _a = true; break;
+			case 'p': _p = true; break;
 
 			default:
 				fdprintf(stderr, "### Which - \"-%c\" is not an option.\n", c);
@@ -832,7 +810,7 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 	}
 
 	for(; ss; ++ss) {
-		if (p) fdprintf(stderr, "checking %s\n", ss->c_str());
+		if (_p) fdprintf(stderr, "checking %s\n", ss->c_str());
 
 		std::error_code ec;
 		fs::path p(ToolBox::MacToUnix(ss->c_str()));
@@ -841,13 +819,13 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 		if (fs::exists(p, ec)) {
 			found = true;
 			fdprintf(stdout, "%s\n", quote(p).c_str());
-			if (!a) break;
+			if (!_a) break;
 		}
 
 	}
 
 	// check builtins...
-	if (!found || a) {
+	if (!found || _a) {
 
 		static const char *builtins[] = {
 			"aboutbox",
@@ -951,9 +929,7 @@ int builtin_version(Environment &env, const std::vector<std::string> &tokens, co
 	auto argv = getopt(tokens, [&](char c){
 		switch(tolower(c))
 		{
-			case 'v':
-				_v = true;
-				break;
+			case 'v': _v = true; break;
 			default:
 				fdprintf(stderr, "### Version - \"-%c\" is not an option.\n", c);
 				error = true;
@@ -1036,6 +1012,46 @@ int builtin_true(Environment &, const std::vector<std::string> &, const fdmask &
 
 int builtin_false(Environment &, const std::vector<std::string> &, const fdmask &) {
 	return 1;
+}
+
+
+int builtin_quit(Environment &, const std::vector<std::string> &tokens, const fdmask &fds) {
+
+	bool error = false;
+	bool _y = false;
+	bool _n = false;
+	bool _c = false;
+
+	auto argv = getopt(tokens, [&](char c){
+		switch(tolower(c))
+		{
+			case 'c': _c = true; break;
+			case 'n': _n = true; break;
+			case 'y': _y = true; break;
+
+			default:
+				fdprintf(stderr, "### Quit - \"-%c\" is not an option.\n", c);
+				error = true;
+				break;
+		}
+	});
+	if (_y + _n + _c > 1) {
+		fdprintf(stderr, "### Quit - Conflicting options were specified.\n");
+		error = true;		
+	}
+
+	if (argv.size() > 0) {
+		fdprintf(stderr, "### Quit - Too many parameters were specified.\n");
+		error = true;
+	}
+
+	if (error) {
+		fdprintf(stderr, "# Usage - Quit [-y | -n | -c]\n");
+		return 1;
+	}
+
+	throw quit_command_t{};
+	return 0;
 }
 
 

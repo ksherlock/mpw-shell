@@ -81,6 +81,7 @@ void mpw_parser::execute() {
 
 	command_ptr cmd;
 
+
 	try {
 		while (!commands.empty()) {
 			cmd = std::move(commands.back());
@@ -94,7 +95,7 @@ void mpw_parser::execute() {
 
 		if (_interactive) {
 			if (!cmd->terminal() || !commands.empty()) {
-				fprintf(stderr, "### %s\n", ex.what());
+				if (ex.status()) fprintf(stderr, "### %s\n", ex.what());
 			}
 			return;
 		}

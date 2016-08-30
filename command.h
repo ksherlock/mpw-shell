@@ -22,7 +22,7 @@ struct command {
 	{}
 
 	virtual bool terminal() const noexcept {
-		return type == EVALUATE || type == COMMAND || type == BREAK || type == CONTINUE || type == ERROR;
+		return type == EVALUATE || type == COMMAND || type == BREAK || type == CONTINUE || type == ERROR || type == EXIT;
 	}
 
 	int type = 0;
@@ -81,6 +81,15 @@ struct continue_command : public command {
 	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
 };
 
+struct exit_command : public command {
+
+	template<class S>
+	exit_command(S &&s) : command(EXIT), text(std::forward<S>(s))
+	{}
+
+	std::string text;
+	virtual int execute(Environment &e, const fdmask &fds, bool throwup) final override;
+};
 
 
 struct binary_command : public command {

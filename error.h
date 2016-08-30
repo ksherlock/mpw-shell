@@ -67,4 +67,15 @@ public:
 	{}
 };
 
+/*
+  these are used for flow-control.
+  they do not inherit from std::exception to prevent being caught
+  by normal handlers.
+*/
+
+struct break_command_t {};
+struct continue_command_t {};
+struct exit_command_t { int value = 0; };
+struct quit_command_t {};
+
 #endif

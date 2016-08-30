@@ -139,6 +139,7 @@ term(RV) ::= COMMAND(C).       { RV = std::make_unique<simple_command>(std::move
 term(RV) ::= EVALUATE(C).      { RV = std::make_unique<evaluate_command>(std::move(C)); }
 term(RV) ::= BREAK(C).         { RV = std::make_unique<break_command>(std::move(C)); }
 term(RV) ::= CONTINUE(C).      { RV = std::make_unique<continue_command>(std::move(C)); }
+term(RV) ::= EXIT(C).          { RV = std::make_unique<exit_command>(std::move(C)); }
 term(C) ::= if_command(C).
 term(C) ::= begin_command(C).
 term(C) ::= paren_command(C).

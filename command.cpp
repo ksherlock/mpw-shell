@@ -5,6 +5,7 @@
 #include "builtins.h"
 #include "mpw-shell.h"
 #include "error.h"
+#include "value.h"
 
 #include <stdexcept>
 #include <unordered_map>
@@ -16,6 +17,7 @@
 
 #include "cxx/filesystem.h"
 #include "cxx/string_splitter.h"
+
 
 #include <strings.h>
 #include <unistd.h>
@@ -40,8 +42,7 @@ typedef std::vector<token> token_vector;
 
 namespace {
 
-	struct break_command_t {};
-	struct continue_command_t {};
+
 
 	/*
 	 * returns:
@@ -56,6 +57,12 @@ namespace {
 		return -3;
 	}
 
+	int bad_exit() {
+		fprintf(stderr, "### Exit - Missing if keyword.\n");
+		fprintf(stderr, "# Usage - Exit [Number] [if expression...]\n");
+		return -3;
+	}
+
 	int evaluate(int type, token_vector &&tokens, Environment &env) {
 		std::reverse(tokens.begin(), tokens.end());
 
@@ -64,6 +71,8 @@ namespace {
 		switch(type) {
 			default: return 0;
 
+					// exit [number] [if expr] ([number has been removed])
+			case EXIT:
 			case BREAK:
 			case CONTINUE:
 			case ELSE:
@@ -77,10 +86,12 @@ namespace {
 						case BREAK: name = "Break"; break;
 						case CONTINUE: name = "Continue"; break;
 						case ELSE: name = "Else"; break;
+						case EXIT: name = "Exit"; return bad_exit(); break;
 					}
 					return bad_if(name);
 				}
 				// fall through.
+
 			case IF:
 				tokens.pop_back();
 				try {
@@ -202,6 +213,7 @@ namespace {
 		{"exists", builtin_exists},
 		{"export", builtin_export},
 		{"parameters", builtin_parameters},
+		{"quit", builtin_quit},
 		{"quote", builtin_quote},
 		{"set", builtin_set},
 		{"shift", builtin_shift},
@@ -388,6 +400,10 @@ int eval_exec(std::string command, Environment &env, const fdmask &fds, bool thr
 
 		rv = fx(tokens);
 	}
+	catch (const exit_command_t &ex) {
+		// convert to execution of input terminated.
+		throw execution_of_input_terminated(ex.value);
+	}
 
 	catch (mpw_error &e) {
 		if (echo) env.echo("%s", command.c_str());
@@ -440,6 +456,39 @@ int continue_command::execute(Environment &env, const fdmask &fds, bool throwup)
 		return status;
 	});
 
+}
+
+
+int exit_command::execute(Environment &env, const fdmask &fds, bool throwup) {
+
+	// exit
+	// exit [number] [if expr ]]
+	// todo -- 
+
+	return eval_exec(text, env, fds, throwup, [&](token_vector &tokens){
+		env.set("command", "exit");
+		env.status(0);
+
+		if (tokens.size() <= 1) {
+			throw exit_command_t{};
+		}
+
+
+		int status = 0;
+		value v(tokens[1]);
+		// remove the return value to make processing easier.
+		if (v.is_number()) {
+			tokens.erase(tokens.begin() + 1);
+		}
+		status = evaluate(EXIT, std::move(tokens), env);
+
+		if (status) {
+			int ok = v.to_number(0);
+			throw exit_command_t{ok};
+		}
+
+		return 0;
+	});
 }
 
 int or_command::execute(Environment &e, const fdmask &fds, bool throwup) {

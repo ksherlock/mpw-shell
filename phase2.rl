@@ -193,6 +193,7 @@ int phase2::classify() {
 	_("else", ELSE)
 	_("end", END)
 	_("evaluate", EVALUATE)
+	_("exit", EXIT)
 	_("for", FOR)
 	_("if", IF)
 	_("loop", LOOP)
@@ -233,6 +234,7 @@ bool phase2::special() {
 	case EVALUATE:
 	case BREAK:
 	case CONTINUE:
+	case EXIT:
 		return true;
 	default:
 		return false;

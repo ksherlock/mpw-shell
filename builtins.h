@@ -28,7 +28,7 @@ int builtin_unalias(Environment &e, const std::vector<std::string> &, const fdma
 int builtin_execute(Environment &e, const std::vector<std::string> &, const fdmask &);
 int builtin_true(Environment &e, const std::vector<std::string> &, const fdmask &);
 int builtin_false(Environment &e, const std::vector<std::string> &, const fdmask &);
-int builtin_execute(Environment &e, const std::vector<std::string> &, const fdmask &);
+int builtin_quit(Environment &e, const std::vector<std::string> &, const fdmask &);
 
 
 int builtin_evaluate(Environment &e, std::vector<token> &&, const fdmask &);
