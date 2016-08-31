@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <atomic>
+#include <algorithm>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -32,7 +34,6 @@
 #include <pwd.h>
 #include <sysexits.h>
 #include <paths.h>
-#include <atomic>
 
 #include "version.h"
 
@@ -408,6 +409,7 @@ int make(int argc, char **argv) {
 
 
 	}
+
 	argc -= optind;
 	argv += optind;
 	std::transform(argv, argv+argc, std::back_inserter(args), [](const char *cp){
