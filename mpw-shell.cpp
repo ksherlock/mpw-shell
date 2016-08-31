@@ -10,6 +10,7 @@
 #include <cerrno>
 #include <signal.h>
 #include <sys/wait.h>
+#include <getopt.h>
 
 #include "mpw-shell.h"
 #include "mpw_parser.h"
@@ -349,27 +350,71 @@ int make(int argc, char **argv) {
 
 	std::vector<std::string> args;
 	args.reserve(argc+1);
-	bool __ = false;
+	int c;
+	bool passthrough = false;
 
+	static struct option longopts[] = {
+		{ "help",    no_argument, nullptr, 'h' },
+		{ "verbose", no_argument, nullptr, 'v' },
+		{ "test",    no_argument, nullptr, 1 },
+		{ "dry-run", no_argument, nullptr, 2 },
+		{ nullptr, 0, nullptr, 0},
+	};
 
 	args.push_back(""); // place-holder.
 
-	for (auto iter = argv; *iter; ++iter) {
-		std::string tmp(*iter);
+	while ((c = getopt_long(argc, argv, "d:ef:i:prstuvwy", longopts, nullptr)) != -1) {
+		std::string flag = "-"; flag.push_back(c);
+		switch(c) {
+			default:
+				make_help();
+				return EX_USAGE;
 
-		if (!__) {
-			if (tmp == "--")
-				{ __ = true; continue; }
+			case 'h':
+				make_help();
+				return 0;
 
-			if (tmp == "--help")
-				{ make_help(); exit(0); }
+			case 1:
+				e.set("test", 1);
+				break;
 
-			if (tmp == "--test" || tmp == "--dry-run") 
-				{ e.set("test", "1"); continue; }
+			case 2:
+				passthrough = true;
+				break;
+
+			case 'd':
+			case 'f':
+			case 'i':
+				args.push_back(std::move(flag));
+				args.push_back(optarg);
+				break;
+
+			case 'e':
+			case 'p':
+			case 't':
+			case 'u':
+			case 'v':
+			case 'w':
+			case 'y':
+				args.push_back(std::move(flag));
+				break;
+
+			case 'r':
+			case 's':
+				args.push_back(std::move(flag));
+				passthrough = true;
+				break;
 		}
-		args.emplace_back(std::move(tmp));
+
 
 	}
+	argc -= optind;
+	argv += optind;
+	std::transform(argv, argv+argc, std::back_inserter(args), [](const char *cp){
+		return std::string(cp);
+	});
+
+
 
 	e.startup(true);
 	read_file(e, root() / "Startup");
@@ -382,6 +427,12 @@ int make(int argc, char **argv) {
 	}
 	e.set("command", path);
 	args[0] = path;
+
+	if (passthrough) {
+
+		launch_mpw(e, args, fdmask());
+		exit(EX_OSERR);
+	}
 
 	return read_make(e, args);
 
@@ -460,8 +511,11 @@ int main(int argc, char **argv) {
 	mpw_path();
 
 	fs::path self = fs::path(argv[0]).filename();
-	if (self == "mpw-make") return make(argc - 1, argv + 1);
-	if (self == "mpw-shell" && argc > 1 && !strcmp(argv[1],"make")) return make(argc - 2, argv + 2);
+	if (self == "mpw-make") return make(argc, argv);
+	if (self == "mpw-shell" && argc > 1 && !strcmp(argv[1],"make")) {
+		argv[1] = (char *)"mpw-make";
+		return make(argc - 1, argv + 1);
+	}
 	
 	Environment e;
 	init(e);
