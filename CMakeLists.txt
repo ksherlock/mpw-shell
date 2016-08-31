@@ -6,6 +6,13 @@ project("mpw-shell")
 set (PROJECT_TYPE "CXX")
 set (PROJECT_NAME "MPW Shell")
 
+
+# -std=c++14
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_EXTENSIONS FALSE)
+
+
 #
 # build config.h
 #
@@ -24,22 +31,20 @@ CHECK_LIBRARY_EXISTS(history add_history "" HAVE_LIBHISTORY)
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 
-
-
-set(CMAKE_CXX_FLAGS "-g -Wall -Wno-unused-variable -Wno-multichar -O1")
+add_compile_options(-g -Wall -Wno-unused-variable -Wno-multichar -O1)
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-const-variable ")
+	add_compile_options(-Wno-unused-const-variable)
 endif()
 
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
+	add_compile_options(-Wno-unused-but-set-variable)
 endif()
 
 
-
-add_definitions(-I ${CMAKE_SOURCE_DIR}/ -I ${CMAKE_CURRENT_BINARY_DIR}/ )
+include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # from https://github.com/gsauthof/cmake-ragel
 macro(RAGEL_TARGET Name Input Output)
@@ -117,10 +122,6 @@ elseif(HAVE_LIBREADLINE)
 endif()
 
 
-# all this for -std=c++14
-set_property (TARGET mpw-shell PROPERTY CXX_STANDARD 14)
-set_property (TARGET mpw-shell PROPERTY CXX_STANDARD_REQUIRED TRUE)
-set_property (TARGET mpw-shell PROPERTY CXX_EXTENSIONS FALSE)
 
 # create a symlink for mpw-make
 add_custom_command(
