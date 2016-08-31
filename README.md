@@ -11,16 +11,17 @@ Supported features
 * Begin ... End
 * Loop ... End
 * For name In [word...] ... End
-* Break [If], Continue [If]
+* Break [If], Continue [If], Exit [If]
 * ( ... )
 * ||
 * &&
-* redirection
-*  | "pipes" (via a temporary file. Presumably, that's what MPW did as well.)
+* Redirection
+* | "pipes" (via a temporary file. Presumably, that's what MPW did as well.)
+* Subshells (`...`, ``...``)
+
 
 Not (yet) supported
 -------------
-* subshells (`...`, ``...``)
 * aliases
 * regular expressions
 * text-editing commands (search forward/backward, et cetera)
@@ -33,9 +34,11 @@ Builtin Commands
 * Directory
 * Echo
 * Evaluate
+* Execute
 * Exists
 * Export
 * Parameters
+* Quit
 * Quote
 * Set
 * Shift
@@ -49,7 +52,18 @@ Builtin Commands
 Setup
 -----
 1. Install MPW.  The mpw binary should be somewhere in your `$PATH`.
-It also checks `/usr/local/bin/mpw` and `$HOME/mpw/bin/mpw`
+It also checks `/usr/local/bin/mpw` and `$HOME/mpw/bin/mpw`.  You can
+use mpw-shell without it but only with builtin commands.
 2. Copy the `Startup` script to `$HOME/mpw/`.  This script is executed
 when mpw-shell (or mpw-make) starts up (imagine that) and should
 be used to set environment variables.
+
+
+Command Line Flags
+------------------
+
+    -D name=value  Define environment variable
+    -v             Be verbose (equivalent to -Decho=1)
+    -f             Ignore the Startup script
+    -c string      Execute string
+    -h             Display help
