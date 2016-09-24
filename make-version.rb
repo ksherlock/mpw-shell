@@ -29,3 +29,4 @@ ok = system(*%w(git add version.h))
 ok = system(*%w(git commit -m), "Bump Version: #{VERSION}")
 ok = system(*%w(git tag), "r#{VERSION}")
 exit 0
+
