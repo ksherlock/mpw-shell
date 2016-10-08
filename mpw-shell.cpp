@@ -41,32 +41,50 @@ namespace fs = filesystem;
 
 bool utf8 = false;
 
+fs::path home() {
+
+	const char *cp = getenv("HOME");
+	if (cp && cp) {
+		auto pw = getpwuid(getuid());
+		if (pw) return fs::path(pw->pw_dir);
+
+	}
+	return fs::path();
+}
+
+
 fs::path root() {
 
 	static fs::path root;
+	bool init = false;
 
-	if (root.empty()) {
-		const char *cp = getenv("HOME");
-		if (!cp ||  !*cp) {
-			auto pw = getpwuid(getuid());
-			if (!pw) {
-				fprintf(stderr,"### Unable to determine home directory\n.");
-				exit(EX_NOUSER);
+	static std::array<filesystem::path, 2> locations = { {
+		"/usr/share/mpw/",
+		"/usr/local/share/mpw/"
+	} };
+
+	if (!init) {
+		init = true;
+		std::error_code ec;
+		fs::path p;
+
+		p = home();
+		if (!p.empty()) {
+			p /= "mpw/";
+			if (fs::is_directory(p, ec)) {
+				root = std::move(p);
+				return root;
 			}
-			cp = pw->pw_dir;
 		}
-		root = cp;
-		root /= "mpw/";
-		fs::error_code ec;
-		fs::file_status st = status(root, ec);
-		if (!fs::exists(st)) {
-			fprintf(stderr, "### Warning: %s does not exist.\n", root.c_str());
-		}
-
-		else if (!fs::is_directory(st)) {
-			fprintf(stderr, "### Warning: %s is not a directory.\n", root.c_str());
+		for (fs::path p : locations) {
+			p /= "mpw/";
+			if (fs::is_directory(p, ec)) {
+				root = std::move(p);
+				return root;
+			}
 		}
 
+		fprintf(stderr, "### Warning: Unable to find mpw directory.\n");
 	}
 	return root;
 }
