@@ -212,6 +212,7 @@ namespace {
 		{"execute", builtin_execute},
 		{"exists", builtin_exists},
 		{"export", builtin_export},
+		{"help", builtin_help},
 		{"parameters", builtin_parameters},
 		{"quit", builtin_quit},
 		{"quote", builtin_quote},

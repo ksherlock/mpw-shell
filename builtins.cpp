@@ -17,9 +17,11 @@
 #include <cstdarg>
 
 #include <unistd.h>
+#include <strings.h>
 
 #include "cxx/string_splitter.h"
 #include "cxx/filesystem.h"
+#include "cxx/mapped_file.h"
 
 //MAXPATHLEN
 #include <sys/param.h>
@@ -836,6 +838,7 @@ int builtin_which(Environment &env, const std::vector<std::string> &tokens, cons
 			"execute",
 			"exists",
 			"export",
+			"help",
 			"false", // not in MPW
 			"parameters",
 			"quote",
@@ -1052,6 +1055,168 @@ int builtin_quit(Environment &, const std::vector<std::string> &tokens, const fd
 
 	throw quit_command_t{};
 	return 0;
+}
+
+
+namespace {
+	template<class Iter>
+	Iter find_entry(Iter begin, Iter end) {
+		for(;;) {
+			begin = std::find(begin, end, '\n');
+			if (begin == end) return end;
+			if (std::distance(begin, end) < 3) return end;
+			++begin;
+			if (begin[0] == '-' && begin[1] == '\n') return begin;
+		}
+	}
+
+	template<class Iter1, class Iter2>
+	bool help_name_match(Iter1 begin1, Iter1 end1, Iter2 begin2, Iter2 end2) {
+
+		if (std::distance(begin2, end2) <= std::distance(begin1, end1)) return false;
+
+		for( ; begin1 != end1; ++begin1, ++begin2) {
+			if (tolower(*begin1) != tolower(*begin2)) return false;
+		}
+
+		if (isspace(*begin2)) return true;
+		return false;
+	} 
+
+}
+bool help_helper(const mapped_file &f, const fdmask &fds, const std::string &cmd) {
+
+	/*
+	 * format is:
+	 * -\n
+	 * name whitespace
+	 * ....
+	 * -\n
+	 */
+
+	if (f.size() < 2) return false;
+	auto iter = f.begin();
+	auto end = f.end();
+
+	if (iter[0] != '-' && iter[1] != '\n') {
+		iter = find_entry(iter, end);
+	}
+
+	if (cmd.empty()) {
+		// print first entry
+		write(stdout, f.begin(), std::distance(f.begin(), iter));
+		fdputs("\n", stdout);
+		return true;
+	}
+
+	for(;;) {
+
+		if (iter == end) return false;
+
+		iter += 2;
+		auto next = find_entry(iter, end);
+
+ 		auto l = std::distance(iter, end);
+ 		if (help_name_match(cmd.begin(), cmd.end(), iter, next)) {
+
+			write(stdout, iter, std::distance(iter, next));
+			fdputs("\n", stdout);
+
+ 			return true;
+ 		}
+
+		iter = next;
+	}
+}
+
+
+
+int builtin_help(Environment &env, const std::vector<std::string> &tokens, const fdmask &fds) {
+
+	bool error = false;
+	filesystem::path _f;
+
+	// todo -- -f to specify help file.
+	auto argv = getopt(tokens, [&](char c){
+		switch(tolower(c))
+		{
+
+			default:
+				fdprintf(stderr, "### Help - \"-%c\" is not an option.\n", c);
+				error = true;
+				break;
+		}
+	});
+
+	if (error) {
+		fdputs("# Usage - Help [-f helpfile] command...\n", stderr);
+		return 1;
+	}
+
+
+	const filesystem::path sd(ToolBox::MacToUnix(env.get("shelldirectory")));
+	const filesystem::path hd = sd / "Help";
+
+	filesystem::path mono;
+	mapped_file mono_file;
+	std::error_code ec;
+
+	if (_f.empty()) {
+		mono = sd / "MPW.Help";
+		mono_file = mapped_file(mono, mapped_file::priv, ec);
+	} else {
+
+		mono = _f;
+		mono_file = mapped_file(mono, mapped_file::priv, ec);
+		if (!mono_file && !_f.is_absolute()) {
+			mono = sd / _f;
+			mono_file = mapped_file(mono, mapped_file::priv, ec);
+		}
+
+		if (!mono_file) {
+			fdprintf(stderr, "### Help: Unable to open %s\n", _f.c_str());
+			fdprintf(stderr, "# %s\n", ec.message().c_str());
+			return 3;
+		}
+
+	}
+
+	if (mono_file) {
+		std::replace(mono_file.begin(), mono_file.end(), '\r', '\n');
+	}
+
+	if (argv.empty()) {
+		help_helper(mono_file, fds, "");
+		return 0;
+	}
+
+	int rv = 0;
+	for (const auto &cmd : argv) {
+
+
+		// 1. check for $MPW:Help:command
+		filesystem::path p(hd);
+		p /= cmd;
+
+		mapped_file f(p, mapped_file::priv, ec);
+		if (!ec) {
+			std::replace(f.begin(), f.end(), '\r', '\n');
+			write(stdout, f.data(), f.size());
+			fdputs("\n", stdout);
+			continue;
+		}
+
+
+		if (mono_file) {
+			bool ok = help_helper(mono_file, fds, cmd);
+			if (ok) break;
+		}
+
+		fdprintf(stderr, "### Help - \"%s\" was not found.\n", cmd.c_str());
+		rv = 2;
+	}
+
+	return rv;
 }
 
 
