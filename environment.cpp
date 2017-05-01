@@ -185,8 +185,8 @@ namespace {
 			}
 			va_list ap;
 			va_start(ap, fmt);
-			va_end(ap);
 			vfprintf(stderr, fmt, ap);
+			va_end(ap);
 			fputc('\n', stderr);
 		}
 	}
