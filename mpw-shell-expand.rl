@@ -157,6 +157,14 @@ std::string subshell(const std::string &s, Environment &env, const fdmask &fds) 
 		}
 		tmp.append(buffer, buffer + len);
 	}
+
+
+	/* if present, a trailing carriage return is stripped */
+
+	if (!tmp.empty()) {
+		if (tmp.back() == '\r' || tmp.back() == '\n') tmp.pop_back();
+	}
+
 	std::transform(tmp.begin(), tmp.end(), tmp.begin(), [](uint8_t x){
 		if (x == '\r' || x == '\n') x = ' ';
 		return x;
