@@ -155,7 +155,7 @@ namespace ToolBox
 
 		}%%
 
-		return str;
+		return std::move(str);
 
 	}
 
