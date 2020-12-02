@@ -12,6 +12,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: xcode 12.2
+      shell: bash
+      run: sudo xcode-select -s /Applications/Xcode_12.2.app
+
     - name: Brew
       run: brew install ragel
 
@@ -28,3 +32,9 @@ jobs:
       shell: bash
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE
+
+    - name: Archive
+      uses: actions/upload-artifact@v2
+      with:
+        name: mpw fat
+        path: ${{runner.workspace}}/build/mpw-shell
