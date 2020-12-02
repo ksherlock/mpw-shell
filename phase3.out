@@ -1,0 +1,822 @@
+State 0:
+          start ::= * command_list
+     (21) command_list ::= *
+          command_list ::= * command_list sep
+          command_list ::= * command_list command sep
+
+                         start accept
+                  command_list shift        5      
+                     {default} reduce       21     command_list ::=
+
+State 1:
+          compound_list ::= compound_list * sep
+          compound_list ::= compound_list * command sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= * command PIPE opt_nl command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          loop_command ::= * LOOP sep compound_list END
+          for_command ::= * FOR sep compound_list END
+          if_command ::= * IF sep compound_list END
+          if_command ::= IF sep compound_list * END
+          if_command ::= * IF sep compound_list else_command END
+          if_command ::= IF sep compound_list * else_command END
+          else_command ::= * ELSE_IF|ELSE sep compound_list
+          else_command ::= * else_command ELSE_IF|ELSE sep compound_list
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                           END shift-reduce 16     if_command ::= IF sep compound_list END
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                       ELSE_IF shift        16     
+                          ELSE shift        16     
+                           sep shift-reduce 24     compound_list ::= compound_list sep
+                       command shift        13     
+                          term shift        13       /* because term==command */
+                    if_command shift        13       /* because if_command==term */
+                 begin_command shift        13       /* because begin_command==term */
+                 paren_command shift        13       /* because paren_command==term */
+                  loop_command shift        13       /* because loop_command==term */
+                   for_command shift        13       /* because for_command==term */
+                  else_command shift        31     
+
+State 2:
+          compound_list ::= compound_list * sep
+          compound_list ::= compound_list * command sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= * command PIPE opt_nl command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          loop_command ::= * LOOP sep compound_list END
+          for_command ::= * FOR sep compound_list END
+          for_command ::= FOR sep compound_list * END
+          if_command ::= * IF sep compound_list END
+          if_command ::= * IF sep compound_list else_command END
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                           END shift-reduce 15     for_command ::= FOR sep compound_list END
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                           sep shift-reduce 24     compound_list ::= compound_list sep
+                       command shift        13     
+                          term shift        13       /* because term==command */
+                    if_command shift        13       /* because if_command==term */
+                 begin_command shift        13       /* because begin_command==term */
+                 paren_command shift        13       /* because paren_command==term */
+                  loop_command shift        13       /* because loop_command==term */
+                   for_command shift        13       /* because for_command==term */
+
+State 3:
+          compound_list ::= compound_list * sep
+          compound_list ::= compound_list * command sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= * command PIPE opt_nl command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          loop_command ::= * LOOP sep compound_list END
+          loop_command ::= LOOP sep compound_list * END
+          for_command ::= * FOR sep compound_list END
+          if_command ::= * IF sep compound_list END
+          if_command ::= * IF sep compound_list else_command END
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                           END shift-reduce 14     loop_command ::= LOOP sep compound_list END
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                           sep shift-reduce 24     compound_list ::= compound_list sep
+                       command shift        13     
+                          term shift        13       /* because term==command */
+                    if_command shift        13       /* because if_command==term */
+                 begin_command shift        13       /* because begin_command==term */
+                 paren_command shift        13       /* because paren_command==term */
+                  loop_command shift        13       /* because loop_command==term */
+                   for_command shift        13       /* because for_command==term */
+
+State 4:
+          compound_list ::= compound_list * sep
+          compound_list ::= compound_list * command sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= * command PIPE opt_nl command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          begin_command ::= BEGIN sep compound_list * END
+          loop_command ::= * LOOP sep compound_list END
+          for_command ::= * FOR sep compound_list END
+          if_command ::= * IF sep compound_list END
+          if_command ::= * IF sep compound_list else_command END
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                           END shift-reduce 13     begin_command ::= BEGIN sep compound_list END
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                           sep shift-reduce 24     compound_list ::= compound_list sep
+                       command shift        13     
+                          term shift        13       /* because term==command */
+                    if_command shift        13       /* because if_command==term */
+                 begin_command shift        13       /* because begin_command==term */
+                 paren_command shift        13       /* because paren_command==term */
+                  loop_command shift        13       /* because loop_command==term */
+                   for_command shift        13       /* because for_command==term */
+
+State 5:
+     (20) start ::= command_list *
+          command_list ::= command_list * sep
+          command_list ::= command_list * command sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= * command PIPE opt_nl command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          loop_command ::= * LOOP sep compound_list END
+          for_command ::= * FOR sep compound_list END
+          if_command ::= * IF sep compound_list END
+          if_command ::= * IF sep compound_list else_command END
+
+                             $ reduce       20     start ::= command_list
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                           sep shift-reduce 22     command_list ::= command_list sep
+                       command shift        15     
+                          term shift        15       /* because term==command */
+                    if_command shift        15       /* because if_command==term */
+                 begin_command shift        15       /* because begin_command==term */
+                 paren_command shift        15       /* because paren_command==term */
+                  loop_command shift        15       /* because loop_command==term */
+                   for_command shift        15       /* because for_command==term */
+
+State 6:
+          compound_list ::= compound_list * sep
+          compound_list ::= compound_list * command sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= * command PIPE opt_nl command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          loop_command ::= * LOOP sep compound_list END
+          for_command ::= * FOR sep compound_list END
+          if_command ::= * IF sep compound_list END
+          if_command ::= * IF sep compound_list else_command END
+     (18) else_command ::= ELSE_IF|ELSE sep compound_list *
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                           sep shift-reduce 24     compound_list ::= compound_list sep
+                       command shift        13     
+                          term shift        13       /* because term==command */
+                    if_command shift        13       /* because if_command==term */
+                 begin_command shift        13       /* because begin_command==term */
+                 paren_command shift        13       /* because paren_command==term */
+                  loop_command shift        13       /* because loop_command==term */
+                   for_command shift        13       /* because for_command==term */
+                     {default} reduce       18     else_command ::= ELSE_IF|ELSE sep compound_list
+
+State 7:
+          compound_list ::= compound_list * sep
+          compound_list ::= compound_list * command sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= * command PIPE opt_nl command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          loop_command ::= * LOOP sep compound_list END
+          for_command ::= * FOR sep compound_list END
+          if_command ::= * IF sep compound_list END
+          if_command ::= * IF sep compound_list else_command END
+     (19) else_command ::= else_command ELSE_IF|ELSE sep compound_list *
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                           sep shift-reduce 24     compound_list ::= compound_list sep
+                       command shift        13     
+                          term shift        13       /* because term==command */
+                    if_command shift        13       /* because if_command==term */
+                 begin_command shift        13       /* because begin_command==term */
+                 paren_command shift        13       /* because paren_command==term */
+                  loop_command shift        13       /* because loop_command==term */
+                   for_command shift        13       /* because for_command==term */
+                     {default} reduce       19     else_command ::= else_command ELSE_IF|ELSE sep compound_list
+
+State 8:
+          compound_list ::= compound_list * sep
+          compound_list ::= compound_list * command sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= * command PIPE opt_nl command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+     (33) paren_list ::= compound_list *
+          paren_list ::= compound_list * command
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          loop_command ::= * LOOP sep compound_list END
+          for_command ::= * FOR sep compound_list END
+          if_command ::= * IF sep compound_list END
+          if_command ::= * IF sep compound_list else_command END
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                           sep shift-reduce 24     compound_list ::= compound_list sep
+                       command shift        14     
+                          term shift        14       /* because term==command */
+                    if_command shift        14       /* because if_command==term */
+                 begin_command shift        14       /* because begin_command==term */
+                 paren_command shift        14       /* because paren_command==term */
+                  loop_command shift        14       /* because loop_command==term */
+                   for_command shift        14       /* because for_command==term */
+                     {default} reduce       33     paren_list ::= compound_list
+
+State 9:
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= * command PIPE opt_nl command
+          command ::= command PIPE opt_nl * command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          loop_command ::= * LOOP sep compound_list END
+          for_command ::= * FOR sep compound_list END
+          if_command ::= * IF sep compound_list END
+          if_command ::= * IF sep compound_list else_command END
+          opt_nl ::= opt_nl * NL
+
+                            NL shift-reduce 35     opt_nl ::= opt_nl NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                       command shift-reduce 4      command ::= command PIPE opt_nl command
+                          term shift-reduce 4      command ::= command PIPE opt_nl command  /* because term==command */
+                    if_command shift-reduce 4      command ::= command PIPE opt_nl command  /* because if_command==term */
+                 begin_command shift-reduce 4      command ::= command PIPE opt_nl command  /* because begin_command==term */
+                 paren_command shift-reduce 4      command ::= command PIPE opt_nl command  /* because paren_command==term */
+                  loop_command shift-reduce 4      command ::= command PIPE opt_nl command  /* because loop_command==term */
+                   for_command shift-reduce 4      command ::= command PIPE opt_nl command  /* because for_command==term */
+
+State 10:
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= command AMP_AMP opt_nl * command
+          command ::= * command PIPE opt_nl command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          loop_command ::= * LOOP sep compound_list END
+          for_command ::= * FOR sep compound_list END
+          if_command ::= * IF sep compound_list END
+          if_command ::= * IF sep compound_list else_command END
+          opt_nl ::= opt_nl * NL
+
+                            NL shift-reduce 35     opt_nl ::= opt_nl NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                       command shift        33     
+                          term shift        33       /* because term==command */
+                    if_command shift        33       /* because if_command==term */
+                 begin_command shift        33       /* because begin_command==term */
+                 paren_command shift        33       /* because paren_command==term */
+                  loop_command shift        33       /* because loop_command==term */
+                   for_command shift        33       /* because for_command==term */
+
+State 11:
+          command ::= * command PIPE_PIPE opt_nl command
+          command ::= command PIPE_PIPE opt_nl * command
+          command ::= * command AMP_AMP opt_nl command
+          command ::= * command PIPE opt_nl command
+          command ::= * term
+          term ::= * COMMAND
+          term ::= * EVALUATE
+          term ::= * BREAK
+          term ::= * CONTINUE
+          term ::= * EXIT
+          term ::= * if_command
+          term ::= * begin_command
+          term ::= * paren_command
+          term ::= * loop_command
+          term ::= * for_command
+          term ::= * ERROR
+          paren_command ::= * LPAREN paren_list RPAREN
+          begin_command ::= * BEGIN sep compound_list END
+          loop_command ::= * LOOP sep compound_list END
+          for_command ::= * FOR sep compound_list END
+          if_command ::= * IF sep compound_list END
+          if_command ::= * IF sep compound_list else_command END
+          opt_nl ::= opt_nl * NL
+
+                            NL shift-reduce 35     opt_nl ::= opt_nl NL
+                       COMMAND shift-reduce 5      term ::= COMMAND
+                      EVALUATE shift-reduce 6      term ::= EVALUATE
+                         BREAK shift-reduce 7      term ::= BREAK
+                      CONTINUE shift-reduce 8      term ::= CONTINUE
+                          EXIT shift-reduce 9      term ::= EXIT
+                         ERROR shift-reduce 10     term ::= ERROR
+                        LPAREN shift        12     
+                         BEGIN shift        21     
+                          LOOP shift        20     
+                           FOR shift        19     
+                            IF shift        18     
+                       command shift        34     
+                          term shift        34       /* because term==command */
+                    if_command shift        34       /* because if_command==term */
+                 begin_command shift        34       /* because begin_command==term */
+                 paren_command shift        34       /* because paren_command==term */
+                  loop_command shift        34       /* because loop_command==term */
+                   for_command shift        34       /* because for_command==term */
+
+State 12:
+     (23) compound_list ::= *
+          compound_list ::= * compound_list sep
+          compound_list ::= * compound_list command sep
+          paren_list ::= * compound_list
+          paren_list ::= * compound_list command
+          paren_command ::= LPAREN * paren_list RPAREN
+
+                 compound_list shift        8      
+                    paren_list shift        32     
+                     {default} reduce       23     compound_list ::=
+
+State 13:
+          compound_list ::= compound_list command * sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= command * PIPE_PIPE opt_nl command
+          command ::= command * AMP_AMP opt_nl command
+          command ::= command * PIPE opt_nl command
+
+                     PIPE_PIPE shift        30     
+                       AMP_AMP shift        29     
+                          PIPE shift        28     
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                           sep shift-reduce 1      compound_list ::= compound_list command sep
+
+State 14:
+          compound_list ::= compound_list command * sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= command * PIPE_PIPE opt_nl command
+          command ::= command * AMP_AMP opt_nl command
+          command ::= command * PIPE opt_nl command
+     (11) paren_list ::= compound_list command *
+
+                     PIPE_PIPE shift        30     
+                       AMP_AMP shift        29     
+                          PIPE shift        28     
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                           sep shift-reduce 1      compound_list ::= compound_list command sep
+                     {default} reduce       11     paren_list ::= compound_list command
+
+State 15:
+          command_list ::= command_list command * sep
+          sep ::= * SEMI
+          sep ::= * NL
+          command ::= command * PIPE_PIPE opt_nl command
+          command ::= command * AMP_AMP opt_nl command
+          command ::= command * PIPE opt_nl command
+
+                     PIPE_PIPE shift        30     
+                       AMP_AMP shift        29     
+                          PIPE shift        28     
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                           sep shift-reduce 0      command_list ::= command_list command sep
+
+State 16:
+          sep ::= * SEMI
+          sep ::= * NL
+          else_command ::= ELSE_IF|ELSE * sep compound_list
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                           sep shift        22     
+
+State 17:
+          sep ::= * SEMI
+          sep ::= * NL
+          else_command ::= else_command ELSE_IF|ELSE * sep compound_list
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                           sep shift        23     
+
+State 18:
+          sep ::= * SEMI
+          sep ::= * NL
+          if_command ::= IF * sep compound_list END
+          if_command ::= IF * sep compound_list else_command END
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                           sep shift        24     
+
+State 19:
+          sep ::= * SEMI
+          sep ::= * NL
+          for_command ::= FOR * sep compound_list END
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                           sep shift        25     
+
+State 20:
+          sep ::= * SEMI
+          sep ::= * NL
+          loop_command ::= LOOP * sep compound_list END
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                           sep shift        26     
+
+State 21:
+          sep ::= * SEMI
+          sep ::= * NL
+          begin_command ::= BEGIN * sep compound_list END
+
+                          SEMI shift-reduce 25     sep ::= SEMI
+                            NL shift-reduce 26     sep ::= NL
+                           sep shift        27     
+
+State 22:
+     (23) compound_list ::= *
+          compound_list ::= * compound_list sep
+          compound_list ::= * compound_list command sep
+          else_command ::= ELSE_IF|ELSE sep * compound_list
+
+                 compound_list shift        6      
+                     {default} reduce       23     compound_list ::=
+
+State 23:
+     (23) compound_list ::= *
+          compound_list ::= * compound_list sep
+          compound_list ::= * compound_list command sep
+          else_command ::= else_command ELSE_IF|ELSE sep * compound_list
+
+                 compound_list shift        7      
+                     {default} reduce       23     compound_list ::=
+
+State 24:
+     (23) compound_list ::= *
+          compound_list ::= * compound_list sep
+          compound_list ::= * compound_list command sep
+          if_command ::= IF sep * compound_list END
+          if_command ::= IF sep * compound_list else_command END
+
+                 compound_list shift        1      
+                     {default} reduce       23     compound_list ::=
+
+State 25:
+     (23) compound_list ::= *
+          compound_list ::= * compound_list sep
+          compound_list ::= * compound_list command sep
+          for_command ::= FOR sep * compound_list END
+
+                 compound_list shift        2      
+                     {default} reduce       23     compound_list ::=
+
+State 26:
+     (23) compound_list ::= *
+          compound_list ::= * compound_list sep
+          compound_list ::= * compound_list command sep
+          loop_command ::= LOOP sep * compound_list END
+
+                 compound_list shift        3      
+                     {default} reduce       23     compound_list ::=
+
+State 27:
+     (23) compound_list ::= *
+          compound_list ::= * compound_list sep
+          compound_list ::= * compound_list command sep
+          begin_command ::= BEGIN sep * compound_list END
+
+                 compound_list shift        4      
+                     {default} reduce       23     compound_list ::=
+
+State 28:
+          command ::= command PIPE * opt_nl command
+     (34) opt_nl ::= *
+          opt_nl ::= * opt_nl NL
+
+                        opt_nl shift        9      
+                     {default} reduce       34     opt_nl ::=
+
+State 29:
+          command ::= command AMP_AMP * opt_nl command
+     (34) opt_nl ::= *
+          opt_nl ::= * opt_nl NL
+
+                        opt_nl shift        10     
+                     {default} reduce       34     opt_nl ::=
+
+State 30:
+          command ::= command PIPE_PIPE * opt_nl command
+     (34) opt_nl ::= *
+          opt_nl ::= * opt_nl NL
+
+                        opt_nl shift        11     
+                     {default} reduce       34     opt_nl ::=
+
+State 31:
+          if_command ::= IF sep compound_list else_command * END
+          else_command ::= else_command * ELSE_IF|ELSE sep compound_list
+
+                           END shift-reduce 17     if_command ::= IF sep compound_list else_command END
+                       ELSE_IF shift        17     
+                          ELSE shift        17     
+
+State 32:
+          paren_command ::= LPAREN paren_list * RPAREN
+
+                        RPAREN shift-reduce 12     paren_command ::= LPAREN paren_list RPAREN
+
+State 33:
+          command ::= command * PIPE_PIPE opt_nl command
+          command ::= command * AMP_AMP opt_nl command
+      (3) command ::= command AMP_AMP opt_nl command *
+          command ::= command * PIPE opt_nl command
+
+                          PIPE shift        28     
+                     {default} reduce       3      command ::= command AMP_AMP opt_nl command
+
+State 34:
+          command ::= command * PIPE_PIPE opt_nl command
+      (2) command ::= command PIPE_PIPE opt_nl command *
+          command ::= command * AMP_AMP opt_nl command
+          command ::= command * PIPE opt_nl command
+
+                          PIPE shift        28     
+                     {default} reduce       2      command ::= command PIPE_PIPE opt_nl command
+
+----------------------------------------------------
+Symbols:
+    0: $:
+    1: PIPE_PIPE
+    2: AMP_AMP
+    3: PIPE
+    4: SEMI
+    5: NL
+    6: COMMAND
+    7: EVALUATE
+    8: BREAK
+    9: CONTINUE
+   10: EXIT
+   11: ERROR
+   12: LPAREN
+   13: RPAREN
+   14: BEGIN
+   15: END
+   16: LOOP
+   17: FOR
+   18: IF
+   19: ELSE_IF
+   20: ELSE
+   21: error:
+   22: start: <lambda> SEMI NL COMMAND EVALUATE BREAK CONTINUE EXIT ERROR LPAREN BEGIN LOOP FOR IF
+   23: command_list: <lambda> SEMI NL COMMAND EVALUATE BREAK CONTINUE EXIT ERROR LPAREN BEGIN LOOP FOR IF
+   24: sep: SEMI NL
+   25: command: COMMAND EVALUATE BREAK CONTINUE EXIT ERROR LPAREN BEGIN LOOP FOR IF
+   26: compound_list: <lambda> SEMI NL COMMAND EVALUATE BREAK CONTINUE EXIT ERROR LPAREN BEGIN LOOP FOR IF
+   27: opt_nl: <lambda> NL
+   28: term: COMMAND EVALUATE BREAK CONTINUE EXIT ERROR LPAREN BEGIN LOOP FOR IF
+   29: if_command: IF
+   30: begin_command: BEGIN
+   31: paren_command: LPAREN
+   32: loop_command: LOOP
+   33: for_command: FOR
+   34: paren_list: <lambda> SEMI NL COMMAND EVALUATE BREAK CONTINUE EXIT ERROR LPAREN BEGIN LOOP FOR IF
+   35: else_command: ELSE_IF ELSE
