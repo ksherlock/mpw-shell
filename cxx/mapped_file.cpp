@@ -278,7 +278,7 @@ void mapped_file_base::create(const path_type& p, size_t length) {
 
 	if (is_open()) close();
 
-	fd = ::open(p.c_str(), O_RDWR | O_CREAT | O_TRUNC);
+	fd = ::open(p.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0666);
 	if (fd < 0) {
 		return set_or_throw_error(nullptr, "open");
 	}
