@@ -14,5 +14,5 @@ script: make
 before_install:
   - brew update
   - brew install ragel
-  - brew install "https://github.com/ksherlock/lemon--/raw/master/lemon++.rb"
+  - brew install "https://raw.githubusercontent.com/ksherlock/homebrew-ksherlock/master/lemonxx.rb"
 
