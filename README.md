@@ -67,3 +67,24 @@ Command Line Flags
     -f             Ignore the Startup script
     -c string      Execute string
     -h             Display help
+
+
+Build
+-----
+
+Standard CMake build sequence:
+
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
+
+After that, do the standard CMake install sequence in the same folder:
+
+```bash
+cmake --install
+```
+
+to install `mpw-shell` and `mpw-make` in `/usr/bin/local`.
