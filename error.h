@@ -67,6 +67,21 @@ public:
 	{}
 };
 
+class fsstring_error: public mpw_error {
+public:
+	fsstring_error(int status = -3) : 
+	mpw_error(status, "MPW Shell - /s must occur in pairs.")
+	{}
+};
+
+class bsstring_error: public mpw_error {
+public:
+	bsstring_error(int status = -3) : 
+	mpw_error(status, "MPW Shell - \\s must occur in pairs.")
+	{}
+};
+
+
 /*
   these are used for flow-control.
   they do not inherit from std::exception to prevent being caught

@@ -37,6 +37,13 @@
 	dchar = escape_seq | (any - escape - ["]);
 	dstring = ["] dchar** ["] $err{ throw dstring_error(); } ;
 
+	# search-forward string
+	fschar = escape_seq | (any - escape - [/]);
+	fsstring = [/] fschar** [/] $err{ throw fsstring_error(); } ;
+
+	# search-backward string
+	bschar = escape_seq | (any - escape - [\\]);
+	bsstring = [\\] bschar** [\\] $err{ throw bsstring_error(); } ;
 
 	action eval { eval }
 
@@ -127,9 +134,16 @@
 			'-=' when eval
 				 %push_token => { tokens.emplace_back("-=", '-='); };
 
+			'=~' when eval
+				 %push_token => { tokens.emplace_back("=~", '=~'); };
+
+			'!~' when eval
+				 %push_token => { tokens.emplace_back("!~", '!~'); };
 
 			sstring => push_string;
 			dstring => push_string;
+			fsstring => push_string;
+			bsstring => push_string;
 			escape_seq => push_string;
 
 			char => push;
