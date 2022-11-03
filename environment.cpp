@@ -23,6 +23,10 @@ namespace {
 
 	bool tf(long v) { return v; }
 
+	bool tf(const EnvironmentEntry &e) {
+		return tf(static_cast<std::string>(e));
+	}
+
 	// used for #.  base 10 only, extra chars ignored.
 	int to_pound_int(const std::string &s) {
 		if (s.empty()) return 0;
@@ -37,6 +41,29 @@ namespace {
 	int to_pound_int(long n) { return std::max(n, (long)0); }
 
 }
+
+
+	Environment Environment::subshell_environment() {
+		/* clone the current environment, do not include local variables */
+		Environment env;
+		env._alias_table = _alias_table;
+		
+		auto &table = env._table;
+		for (const auto &kv : _table) {
+			const auto &k = kv.first;
+			const auto &value = kv.second;
+			if (!value) continue;
+
+			if (k == "echo") env._echo = tf(value);
+			if (k == "exit") env._exit = tf(value);
+			if (k == "test") env._test = tf(value);
+
+			table.emplace_hint(table.end(), k, value);
+		}
+
+		return env;
+	}
+
 
 	std::string Environment::get(const std::string & key) const {
 		auto iter = find(key);

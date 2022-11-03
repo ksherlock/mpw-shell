@@ -56,7 +56,8 @@ public:
 	typedef std::vector<std::pair<std::string, std::string>> alias_table_type;
 	typedef alias_table_type::const_iterator const_alias_iterator;
 
-	//const EnvironmentEntry & lookup(const std::string &s);
+
+	Environment subshell_environment();
 
 	void set_argv(const std::string &argv0, const std::vector<std::string>& argv);
 	void set_argv(const std::vector<std::string>& argv);
@@ -79,10 +80,6 @@ public:
 
 	bool startup() const noexcept { return _startup; }
 	void startup(bool tf) noexcept { _startup = tf; }
-
-
-	bool passthrough() const noexcept { return _passthrough; }
-	void passthrough(bool tf) noexcept { _passthrough = tf; }
 
 	template<class FX>
 	void foreach(FX && fx) { for (const auto &kv : _table) { fx(kv.first, kv.second); }}
@@ -133,8 +130,6 @@ public:
 private:
 	// magic variables.
 
-	friend class indent_helper;
-
 	int _indent = 0;
 	int _loop = 0;
 
@@ -145,7 +140,6 @@ private:
 	int _status = 0;
 	int _pound = 0;
 	bool _startup = false;
-	bool _passthrough = false;
 
 	void set_common(const std::string &, const std::string &, bool);
 	void rebuild_aliases();
@@ -155,16 +149,5 @@ private:
 	alias_table_type _alias_table;
 };
 
-/*
-class indent_helper {
-public:
-	indent_helper(Environment &e) : env(e) { env._indent++; }
-	void release() { if (active) { active = false; env._indent--; }}
-	~indent_helper() { if (active) env._indent--; }
-private:
-	Environment &env;
-	bool active = true;
-};
-*/
 
 #endif

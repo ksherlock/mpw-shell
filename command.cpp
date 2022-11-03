@@ -107,6 +107,9 @@ namespace {
 	}
 
 
+	bool is_script(const fs::path &path) {
+		return path.extension() == ".text";
+	}
 }
 
 
@@ -359,8 +362,6 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 			return status;
 		}
 
-		if (env.test()) return 0;
-
 		if (env.startup()) {
 			fprintf(stderr, "### MPW Shell - startup file may not contain external commands.\n");
 			return 0;
@@ -374,6 +375,23 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 			//fprintf(stderr, "### MPW Shell - Command \"%s\" was not found.\n", name.c_str());
 			//return -1;
 		}
+
+		if (is_script(path)) {
+			// scripts run with an isolated environment.
+			Environment new_env = env.subshell_environment();
+			new_env.set("command", path);
+			new_env.set_argv(path, p.arguments);
+
+			try {
+				return read_file(new_env, path, newfds);
+			} catch (const exit_command_t &ex) {
+				return ex.value;
+			}
+		}
+
+
+		if (env.test()) return 0;
+
 		env.set("command", path);
 		p.arguments[0] = path;
 
