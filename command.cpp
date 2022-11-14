@@ -26,6 +26,12 @@
 #include <signal.h>
 #include <atomic>
 
+
+
+#if defined(__APPLE__)
+#include <sys/xattr.h>
+#endif
+
 extern std::atomic<int> control_c;
 
 namespace fs = filesystem;
@@ -107,8 +113,22 @@ namespace {
 	}
 
 
+
 	bool is_script(const fs::path &path) {
-		return path.extension() == ".text";
+
+		#if defined(__APPLE__)
+		/* check for a file type of TEXT */
+
+		uint8_t finfo[32];
+		int ok = getxattr(path.c_str(), XATTR_FINDERINFO_NAME,finfo, sizeof(finfo), 0, 0);
+		if (ok < 4) return false;
+
+		if (memcmp(finfo, "TEXT", 4) == 0) return true;
+		return false;
+
+		#else
+		return path.extension() == ".script";
+		#endif
 	}
 }
 
