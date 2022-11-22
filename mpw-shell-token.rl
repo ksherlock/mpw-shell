@@ -38,19 +38,21 @@
 	dstring = ["] dchar** ["] $err{ throw dstring_error(); } ;
 
 	# search-forward string
-	fschar = escape_seq | (any - escape - [/]);
-	fsstring = [/] fschar** [/] $err{ throw fsstring_error(); } ;
+	# fschar = escape_seq | (any - escape - [/]);
+	fchar = [^/];
+	fstring = [/] fchar** [/] $err{ throw fsstring_error(); } ;
 
 	# search-backward string
-	bschar = escape_seq | (any - escape - [\\]);
-	bsstring = [\\] bschar** [\\] $err{ throw bsstring_error(); } ;
+	# bschar = escape_seq | (any - escape - [\\]);
+	bchar = [^\\];
+	bstring = [\\] bchar** [\\] $err{ throw bsstring_error(); } ;
 
 	action eval { eval }
 
 	# > == start state (single char tokens or common prefix)
 	# % == final state (multi char tokens w/ unique prefix)
 	# $ == all states
-	char = any - ['"];
+	char = any - ['"/\\];
 	main := |*
 			ws+  >push_token;
 			'>>' %push_token => { tokens.emplace_back(">>", '>>'); };
@@ -142,8 +144,8 @@
 
 			sstring => push_string;
 			dstring => push_string;
-			fsstring => push_string;
-			bsstring => push_string;
+			fstring => push_string;
+			bstring => push_string;
 			escape_seq => push_string;
 
 			char => push;
@@ -202,10 +204,18 @@ void unquote(token &t) {
 
 	action push { scratch.push_back(fc); }
 	escape = 0xb6;
-	char = any - escape - ['"];
+	char = any - escape - ['"/\\];
 
 	schar = [^'] $push;
 	sstring = ['] schar** ['];
+
+	# // and \\ strings retain the delimiter.
+	fchar = [^/];
+	fstring = ([/] fchar** [/]) $push;
+
+	bchar = [^\\];
+	bstring = ([\\] bchar** [\\]) $push;
+
 
 	ecode = 
 		  'f' ${ scratch.push_back('\f'); }
@@ -222,6 +232,8 @@ void unquote(token &t) {
 	main := (
 		  escape_seq
 		| sstring
+		| fstring
+		| bstring
 		| dstring
 		| char $push
 	)**;

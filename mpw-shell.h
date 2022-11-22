@@ -64,7 +64,7 @@ void parse_tokens(std::vector<token> &&tokens, process &p);
 
 
 
-int32_t evaluate_expression(const std::string &name, std::vector<token> &&tokens);
+int32_t evaluate_expression(Environment &e, const std::string &name, std::vector<token> &&tokens);
 
 
 

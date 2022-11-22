@@ -2,6 +2,7 @@
 #include "fdset.h"
 #include "value.h"
 #include "error.h"
+#include "mpw-regex.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -172,8 +173,8 @@ class expression_parser {
 
 public:
 
-	expression_parser(const std::string &n, std::vector<token> &&t) : 
-		name(n), tokens(std::move(t))
+	expression_parser(Environment &e, const std::string &n, std::vector<token> &&t) : 
+		environment(e),	name(n), tokens(std::move(t))
 	{}
 
 	expression_parser(const expression_parser &) = delete;
@@ -194,6 +195,7 @@ private:
 
 
 	value eval(int op, value &lhs, value &rhs);
+	value eval_regex(value &lhs, value &rhs);
 
 	[[noreturn]] void expect_binary_operator();
 	[[noreturn]] void end_of_expression();
@@ -207,6 +209,7 @@ private:
 		if (!tokens.empty()) tokens.pop_back();
 	}
 
+	Environment &environment;
 	const std::string &name;
 	std::vector<token> tokens;
 };
@@ -323,8 +326,8 @@ int expression_parser::precedence(int op) {
 
 		case '==':
 		case '!=':
-		case token::equivalent:
-		case token::not_equivalent:
+		case '=~':
+		case '!~':
 			return 7;
 		case '&':
 			return 8;
@@ -339,6 +342,25 @@ int expression_parser::precedence(int op) {
 	}
 	return 0;
 	//throw std::runtime_error("unimplemented op";);
+}
+
+value expression_parser::eval_regex(value &lhs, value &rhs) {
+	try {
+		mpw_regex re(rhs.string, true);
+		// todo -- need environment to store matches.
+		bool ok = re.match(lhs.string, environment);
+		return ok ? 1 : 0;
+
+	} catch (std::exception &ex) {
+		std::string error;
+		error = name;
+		if (rhs.string.empty() || rhs.string.front() != '/')
+			error += " - Missing /s around regular expression: ";
+		else
+			error += " - Invalid regular expression encountered: ";
+		error += rhs.string;
+		throw mpw_error(-5, error);
+	}
 }
 
 value expression_parser::eval(int op, value &lhs, value &rhs) {
@@ -407,6 +429,12 @@ value expression_parser::eval(int op, value &lhs, value &rhs) {
 			return lhs.string != rhs.string;
 
 
+		case '=~':
+			return eval_regex(lhs, rhs);
+
+		case '!~':
+			return !eval_regex(lhs, rhs).number;
+
 	}
 	// todo...
 	throw std::runtime_error("unimplemented op");
@@ -469,8 +497,8 @@ int32_t expression_parser::evaluate() {
 	return v.to_number(1);
 }
 
-int32_t evaluate_expression(const std::string &name, std::vector<token> &&tokens) {
+int32_t evaluate_expression(Environment &env, const std::string &name, std::vector<token> &&tokens) {
 
-	expression_parser p(name, std::move(tokens));
+	expression_parser p(env, name, std::move(tokens));
 	return p.evaluate();
 }

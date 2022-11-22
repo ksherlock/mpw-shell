@@ -86,6 +86,13 @@
 	schar = [^'];
 	sstring = ['] schar** ['] ;
 
+	fchar = [^/];
+	fstring = [/] fchar** [/] ;
+
+	bchar = [^\\];
+	bstring = [\\] bchar** [\\] ;
+
+
 	vchar = [^}];
 	vstring = [{] vchar** [}] ;
 
@@ -112,6 +119,8 @@
 		| '&' '&' $parse_amp_amp
 		| escape_seq
 		| sstring
+		| fstring
+		| bstring
 		| dstring
 		| vstring
 		| estring

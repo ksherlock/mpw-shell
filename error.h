@@ -81,6 +81,13 @@ public:
 	{}
 };
 
+class regex_error : public mpw_error {
+public:
+	regex_error(int status = -2) :
+		mpw_error(status, "MPW Shell - File name pattern is incorrect")
+		{}
+
+};
 
 /*
   these are used for flow-control.

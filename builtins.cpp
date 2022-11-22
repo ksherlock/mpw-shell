@@ -691,7 +691,7 @@ int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask
 			tokens.pop_back();
 			tokens.pop_back();
 
-			int32_t i = evaluate_expression("Evaluate", std::move(tokens));
+			int32_t i = evaluate_expression(env, "Evaluate", std::move(tokens));
 
 			switch(type) {
 				case '=':
@@ -721,7 +721,7 @@ int builtin_evaluate(Environment &env, std::vector<token> &&tokens, const fdmask
 		}
 	}
 
-	int32_t i = evaluate_expression("Evaluate", std::move(tokens));
+	int32_t i = evaluate_expression(env, "Evaluate", std::move(tokens));
 
 	if (output == 'h') {
 		fdprintf(stdout, "0x%08x\n", i);

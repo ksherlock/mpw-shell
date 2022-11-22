@@ -25,6 +25,13 @@ enum {
 	st_estring2_esc,
 
 	st_estring3,
+
+	st_fstring,
+	st_fstring_esc,
+
+	st_bstring,
+	st_bstring_esc,
+
 };
 
 
@@ -54,6 +61,8 @@ int phase1::process(unsigned char c, int st) {
 		case st_sstring_esc:
 		case st_estring1_esc:
 		case st_estring2_esc:
+		case st_fstring_esc:
+		case st_bstring_esc:
 			multiline = true;
 			scratch.pop_back();
 			line++;
@@ -81,6 +90,10 @@ text:
 					return st_sstring;
 				case '`':
 					return st_estring;
+				case '/':
+					return st_fstring;
+				case '\\':
+					return st_bstring;
 
 				default:
 					return st_text;
@@ -107,6 +120,23 @@ text:
 			if (c == '\'') return st_text;
 			if (c == esc) return st_sstring_esc;
 			return st_sstring;
+			break;
+
+
+		case st_fstring_esc:
+			// fall through
+		case st_fstring:
+			if (c == '/') return st_text;
+			if (c == esc) return st_fstring_esc;
+			return st_fstring;
+			break;
+
+		case st_bstring_esc:
+			// fall through
+		case st_bstring:
+			if (c == '\\') return st_text;
+			if (c == esc) return st_bstring_esc;
+			return st_bstring;
 			break;
 
 		case st_dstring:

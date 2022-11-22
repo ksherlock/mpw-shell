@@ -80,11 +80,17 @@
 
 
 	escape = 0xb6;
-	char = any - escape - ['"{`];
+	char = any - escape - ['"{`/\\];
 	escape_seq = escape any;
 
 	schar = [^'];
 	sstring = ['] schar** ['];
+
+	fchar = [^/];
+	fstring = [/] fchar** [/];
+
+	bchar = [^\\];
+	bstring = [\\] bchar** [\\];
 
 
 	vchar = [^}] $vpush;
@@ -114,6 +120,8 @@
 	main := (
 		  escape_seq $push
 		| sstring $push
+		| fstring $push
+		| bstring $push
 		| dstring $push
 		| vstring
 		| estring

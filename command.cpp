@@ -101,7 +101,7 @@ namespace {
 			case IF:
 				tokens.pop_back();
 				try {
-					e = evaluate_expression("If", std::move(tokens));
+					e = evaluate_expression(env, "If", std::move(tokens));
 				}
 				catch (std::exception &ex) {
 					fprintf(stderr, "%s\n", ex.what());

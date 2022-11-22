@@ -110,7 +110,7 @@ endif()
 
 
 add_executable(mpw-shell mpw-shell.cpp  mpw-shell-token.cpp mpw-shell-expand.cpp 
-	mpw-shell-parser.cpp mpw_parser.cpp value.cpp mpw-shell-quote.cpp 
+	mpw-shell-parser.cpp mpw_parser.cpp value.cpp mpw-shell-quote.cpp mpw-regex.cpp
 	phase1.cpp phase2.cpp phase3.cpp command.cpp environment.cpp builtins.cpp 
 	pathnames.cpp
 	macroman.cpp
