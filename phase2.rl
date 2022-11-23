@@ -60,6 +60,7 @@
 		}
 	}
 
+
 	action parse_lparen {
 		if (scratch.empty()) {
 			parse(LPAREN, "(");
@@ -71,7 +72,8 @@
 	action parse_rparen {
 		if (pcount <= 0) {
 			flush();
-			parse(RPAREN, ")");
+			// parse(RPAREN, ")");
+			scratch.push_back(fc);
 			fgoto main;
 		}
 		--pcount;
@@ -179,6 +181,10 @@ int phase2::classify() {
 	%%write data;
 	
 	if (type) return type;
+	if (scratch.front() == ')') {
+		type = RPAREN;
+		return type;
+	}
 	std::string argv0;
 
 	const unsigned char *p = (const unsigned char *)scratch.data();
