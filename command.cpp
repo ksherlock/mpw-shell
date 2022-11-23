@@ -716,7 +716,7 @@ int loop_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 			if (control_c) throw execution_of_input_terminated();
 
 			try {
-				env.indent_and([&]{
+				env.loop_indent_and([&]{
 					rv = vector_command::execute(env, newfds);		
 				});
 			}
