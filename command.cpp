@@ -400,7 +400,7 @@ int simple_command::execute(Environment &env, const fdmask &fds, bool throwup) {
 			// scripts run with an isolated environment.
 			Environment new_env = env.subshell_environment();
 			new_env.set("command", path);
-			new_env.set_argv(path, p.arguments);
+			new_env.set_argv(p.arguments);
 
 			try {
 				return read_file(new_env, path, newfds);

@@ -112,15 +112,17 @@ namespace {
 		set_common(k, std::to_string(value), exported);
 	}
 
+#if 0
 	void Environment::set_argv(const std::string &argv0, const std::vector<std::string>& argv) {
 		set_common("0", argv0, false);
 		set_argv(argv);
 	}
+#endif
 	void Environment::set_argv(const std::vector<std::string>& argv) {
-		_pound = argv.size();
-		set_common("#", std::to_string(argv.size()), false);
+		_pound = argv.size() - 1;
+		set_common("#", std::to_string(_pound), false);
 
-		int n = 1;
+		int n = 0;
 		for (const auto &s : argv) {
 			set_common(std::to_string(n++), s, false);
 		}
@@ -143,8 +145,22 @@ namespace {
 		}
 		p.pop_back();
 		set_common("parameters", p, false);
+	}
 
+	void Environment::shift(int n) {
+		if (n < 0) return;
+		if (_pound < 1) return;
 
+		std::vector<std::string> argv;
+		argv.push_back(get("0"));
+
+		for (int i = 1 + n; i <= _pound; ++i) {
+			argv.push_back(get(std::to_string(i)));
+		}
+		for (int i = 0; i < n; ++i) {
+			unset(std::to_string(_pound - i));
+		}
+		set_argv(argv);
 	}
 
 

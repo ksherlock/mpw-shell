@@ -188,7 +188,8 @@ int builtin_shift(Environment &env, const std::vector<std::string> &tokens, cons
 	}
 
 	if (n == 0) return 0;
-
+	env.shift(n);
+#if 0
 	auto argv = load_argv(env);
 	if (argv.empty()) return 0;
 
@@ -199,7 +200,7 @@ int builtin_shift(Environment &env, const std::vector<std::string> &tokens, cons
 	} while (--n);
 
 	env.set_argv(argv);
-
+#endif
 	return 0;
 }
 

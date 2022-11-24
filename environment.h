@@ -59,8 +59,10 @@ public:
 
 	Environment subshell_environment();
 
-	void set_argv(const std::string &argv0, const std::vector<std::string>& argv);
+	// void set_argv(const std::string &argv0, const std::vector<std::string>& argv);
 	void set_argv(const std::vector<std::string>& argv);
+
+	void shift(int n);
 
 	void set(const std::string &k, const std::string &value, bool exported = false);
 	void set(const std::string &k, long l, bool exported = false);
