@@ -70,6 +70,22 @@
 
 			# eval-only.
 
+			# macroman ≤
+			0xb2 when eval
+				%push_token => { tokens.emplace_back("\xb2", '<='); };
+
+			# macroman ≠
+			0xad when eval
+				%push_token => { tokens.emplace_back("\xad", '!='); };
+
+			# macroman ¬
+			0xc2 when eval
+				%push_token => { tokens.emplace_back("\xc2", '!'); };
+
+			# macroman ÷
+			0xd6 when eval
+				%push_token => { tokens.emplace_back("\xd6", '/'); };
+
 			'||' when eval
 				 %push_token => { tokens.emplace_back("||", '||'); };
 			'|'  when eval
@@ -78,13 +94,14 @@
 			'&&' when eval
 				 %push_token => { tokens.emplace_back("&&", '&&'); };
 
-
 			'('  when eval
 				 %push_token => { tokens.emplace_back("(", '('); };
 
 			')'  when eval
 				 %push_token => { tokens.emplace_back(")", ')'); };
 
+			'<>' when eval
+				%push_token => { tokens.emplace_back("<>", '!='); };
 
 			'<<' when eval
 				%push_token => { tokens.emplace_back("<<", '<<'); };

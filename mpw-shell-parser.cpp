@@ -322,6 +322,8 @@ int expression_parser::precedence(int op) {
 		case '<=':
 		case '>':
 		case '>=':
+		case 0xb2:
+		case 0xb3:
 			return 6;
 
 		case '==':
@@ -388,9 +390,11 @@ value expression_parser::eval(int op, value &lhs, value &rhs) {
 			return lhs.to_number() < rhs.to_number();
 
 		case '<=':
+		case 0xb2:
 			return lhs.to_number() <= rhs.to_number();
 
 		case '>=':
+		case 0xb3:
 			return lhs.to_number() >= rhs.to_number();
 
 		case '>>':
