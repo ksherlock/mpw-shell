@@ -22,8 +22,8 @@ set -e PIIGSIncludes "{MPW}Interfaces:PIIGSIncludes:"
 set -e PIIGSLibraries "{MPW}Libraries:PIIGSLibraries:"
 
 # MPW Macintosh compilers
-set -e SCIncludes "{ShellDirectory}:Interfaces:CIncludes:"
-set -e CIncludes "{ShellDirectory}:Interfaces:CIncludes:"
+set -e SCIncludes "{ShellDirectory}Interfaces:CIncludes:"
+set -e CIncludes "{ShellDirectory}Interfaces:CIncludes:"
 set -e AIncludes "{ShellDirectory}Interfaces:AIncludes:"
 set -e RIncludes "{ShellDirectory}Interfaces:RIncludes:"
 set -e PInterfaces "{ShellDirectory}Interfaces:PInterfaces:"
