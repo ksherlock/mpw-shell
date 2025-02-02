@@ -10,7 +10,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Brew
       run: brew install ragel
@@ -30,7 +30,7 @@ jobs:
       run: cmake --build . --config $BUILD_TYPE
 
     - name: Archive
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: mpw fat
         path: ${{runner.workspace}}/build/mpw-shell
